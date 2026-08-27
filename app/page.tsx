@@ -1,6 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+
+const MapComponent = dynamic(() => import("./components/MapComponent"), {
+  ssr: false,
+  loading: () => <p>Loading Map...</p>,
+});
 
 const CATEGORIES = ["Events", "Classes", "Tourist", "Nightlife"] as const;
 type Category = (typeof CATEGORIES)[number];
@@ -16,17 +22,72 @@ export default function Home() {
   const [value, setValue] = useState("");
   const [category, setCategory] = useState<Category>("Events");
   const [subOption, setSubOption] = useState(SUB_OPTIONS.Events[0]);
+  const [location, setLocation] = useState("");
+  const [coords, setCoords] = useState<[number, number] | null>(null);
+  const [locating, setLocating] = useState(false);
 
   function handleCategoryChange(next: Category) {
     setCategory(next);
     setSubOption(SUB_OPTIONS[next][0]);
   }
 
+  async function handleGetLocation() {
+    if (!navigator.geolocation) {
+      setLocation("Location unavailable");
+      setCoords(null);
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          setCoords([longitude, latitude]);
+          const res = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
+          );
+          const data = await res.json();
+          const name =
+            [data.city || data.locality, data.principalSubdivision, data.countryName]
+              .filter(Boolean)
+              .filter((part, i, arr) => arr.indexOf(part) === i)
+              .slice(0, 2)
+              .join(", ") || "Unknown place";
+          setLocation(name);
+        } catch {
+          setLocation("Unknown place");
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocation("Location denied");
+        setCoords(null);
+        setLocating(false);
+      },
+    );
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 bg-[#1a1a1a] px-4">
+    <div className="flex flex-1 flex-col items-center justify-center gap-8 bg-[#1a1a1a] px-4 py-12">
       <h1 className="font-sans text-4xl font-semibold tracking-tight text-[#e5e5e5] sm:text-5xl">
         Turing Touring
       </h1>
+
+      {/* geolocation api to get the user's location */}
+      <button
+        className="rounded-md bg-[#3a3a3a] px-4 py-2 text-sm text-[#e5e5e5] transition-colors hover:bg-[#454545] disabled:opacity-60"
+        type="button"
+        disabled={locating}
+        onClick={handleGetLocation}
+      >
+        {locating
+          ? "🌎 Locating… 🌍"
+          : location
+            ? `🌎 ${location} 🌍`
+            : "🌎 Get Location 🌍"}
+      </button>
       <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 shadow-lg">
         <textarea
           value={value}
@@ -70,6 +131,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {coords && (
+        <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#3f3f3f]">
+          <MapComponent coords={coords} />
+        </div>
+      )}
     </div>
   );
 }
@@ -219,3 +286,4 @@ function EnterIcon() {
     </svg>
   );
 }
+
