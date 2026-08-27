@@ -8,20 +8,20 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 const DETAILED_STYLE: StyleSpecification = {
   version: 8,
   sources: {
-    carto: {
+    osm: {
       type: 'raster',
       tiles: [
-        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
       ],
       tileSize: 256,
       attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxzoom: 20,
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxzoom: 19,
     },
   },
-  layers: [{ id: 'carto', type: 'raster', source: 'carto' }],
+  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
 };
 
 export default function MapComponent({ coords }: { coords: [number, number] }) {
