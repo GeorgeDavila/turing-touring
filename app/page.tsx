@@ -19,6 +19,31 @@ const SUB_OPTIONS: Record<Category, string[]> = {
   Nightlife: ["Bars", "Clubs", "Live Music", "Late-Night Eats", "Dance Clubs"],
 };
 
+const TYPE_FALLBACK: Record<Category, string> = {
+  Events: "event",
+  Classes: "class",
+  Tourist: "tourist attraction",
+  Nightlife: "nightlife spot",
+};
+
+function buildDefaultQuery(
+  location: string,
+  category: Category,
+  subOption: string,
+) {
+  const type = subOption || TYPE_FALLBACK[category];
+  return `Give me a link to a ${type} in ${location} taking place tomorrow morning and the price of the event.`;
+}
+
+function isValidLocation(location: string) {
+  return (
+    location.length > 0 &&
+    location !== "Location denied" &&
+    location !== "Location unavailable"
+  );
+}
+
+
 export default function Home() {
   const [value, setValue] = useState("");
   const [category, setCategory] = useState<Category>("Events");
@@ -76,6 +101,11 @@ export default function Home() {
     handleGetLocation();
   }, [handleGetLocation]);
 
+  useEffect(() => {
+    if (!isValidLocation(location)) return;
+    setValue(buildDefaultQuery(location, category, subOption));
+  }, [location, category, subOption]);
+
   async function handleSend() {
     const trimmed = value.trim();
     if (!trimmed || sending) return;
@@ -123,10 +153,9 @@ export default function Home() {
       </button>
       <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 shadow-lg">
         <textarea
-          //value={value}
+          value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="What do you want to do?"
-          defaultValue={`Give me a link to a yoga class in ${location} taking place tomorrow morning and the price of the event.`}
           autoFocus
           rows={3}
           className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-[#e5e5e5] placeholder:text-[#8a8a8a] outline-none"
