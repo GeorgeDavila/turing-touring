@@ -81,9 +81,10 @@ export async function openrouterRequest({
     throw new Error("OPENROUTER_API_KEY is not set");
   }
 
-  const tools: OpenRouterTool[] = useWebSearch
-    ? [{ type: "openrouter:web_search" }]
-    : [];
+  const tools = [{type: "openrouter:datetime"}]
+  if (useWebSearch) {
+    tools.push({type: "openrouter:web_search"})
+  }
 
   const response = await fetch(OPENROUTER_API_URL, {
     method: "POST",
