@@ -119,5 +119,6 @@ export async function openrouterRequest({
   }
 
   const data = (await response.json()) as OpenRouterChatResponse;
+  console.log("OpenRouter API response:", JSON.stringify(data, null, 2));
   return data.choices[0]?.message?.content ?? "";
 }
