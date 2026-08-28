@@ -2,7 +2,20 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
 
-const QUERY_SUFFIX = "\n\nOnly return the link, time, and price in json format. Do not include any other text in your response.";
+const QUERY_SUFFIX = "\nOnly stop when you find an exact link meeting my requirements. \nOnly return the precise link, time, and price in json format. Do not include any other text in your response.";
+
+function convertResponseToJson(response: string): { link: string, time: string, price: number } {
+  try {
+    const json = JSON.parse(response);
+    return {
+      link: json.link,
+      time: json.time,
+      price: json.price,
+    };
+  } catch (error) {
+    throw new Error("Invalid JSON response");
+  }
+}
 
 type MessageContent =
   | { type: "text"; text: string }
@@ -62,7 +75,7 @@ export async function openrouterRequest({
   query,
   model = DEFAULT_MODEL,
   useWebSearch = true,
-  maxTokens = 2000,
+  maxTokens = 4000,
   reasoning = true,
   imageUrl = null,
   videoUrl = null,
