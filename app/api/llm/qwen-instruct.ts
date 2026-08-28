@@ -1,6 +1,8 @@
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-export const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
+const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
+
+const QUERY_SUFFIX = "\n\nOnly return the link, time, and price in json format. Do not include any other text in your response.";
 
 type MessageContent =
   | { type: "text"; text: string }
@@ -11,7 +13,7 @@ type MessageContent =
 
 type OpenRouterTool = { type: "openrouter:web_search" };
 
-export type OpenRouterRequestOptions = {
+type OpenRouterRequestOptions = {
   query: string;
   model?: string;
   useWebSearch?: boolean;
@@ -38,7 +40,7 @@ function buildContent({
   audioUrl,
   fileUrl,
 }: OpenRouterRequestOptions): MessageContent[] {
-  const content: MessageContent[] = [{ type: "text", text: query }];
+  const content: MessageContent[] = [{ type: "text", text: query + QUERY_SUFFIX }];
 
   if (imageUrl) {
     content.push({ type: "image_url", image_url: { url: imageUrl } });

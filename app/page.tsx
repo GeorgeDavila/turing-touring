@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { openrouterRequest } from "@/app/api/llm/actions";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   ssr: false,
@@ -12,26 +13,28 @@ const CATEGORIES = ["Events", "Classes", "Tourist", "Nightlife"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const SUB_OPTIONS: Record<Category, string[]> = {
-  Events: ["Concerts", "Festivals", "Sports", "Theater"],
-  Classes: ["Cooking", "Yoga", "Language", "Pottery"],
-  Tourist: ["Museums", "Landmarks", "Walking Tours", "Viewpoints"],
-  Nightlife: ["Bars", "Clubs", "Live Music", "Late-Night Eats"],
+  Events: ["Music", "Concerts", "Festivals", "Sports", "Theater"],
+  Classes: ["Cooking", "Yoga", "Language", "Pottery", "Art Classes"],
+  Tourist: ["Museums", "Landmarks", "Walking Tours", "Viewpoints", "Shopping Centers"],
+  Nightlife: ["Bars", "Clubs", "Live Music", "Late-Night Eats", "Dance Clubs"],
 };
 
 export default function Home() {
   const [value, setValue] = useState("");
   const [category, setCategory] = useState<Category>("Events");
-  const [subOption, setSubOption] = useState(SUB_OPTIONS.Events[0]);
+  const [subOption, setSubOption] = useState("");
   const [location, setLocation] = useState("");
   const [coords, setCoords] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [response, setResponse] = useState("");
 
   function handleCategoryChange(next: Category) {
     setCategory(next);
-    setSubOption(SUB_OPTIONS[next][0]);
+    setSubOption("");
   }
 
-  async function handleGetLocation() {
+  const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocation("Location unavailable");
       setCoords(null);
@@ -67,6 +70,36 @@ export default function Home() {
         setLocating(false);
       },
     );
+  }, []);
+
+  useEffect(() => {
+    handleGetLocation();
+  }, [handleGetLocation]);
+
+  async function handleSend() {
+    const trimmed = value.trim();
+    if (!trimmed || sending) return;
+
+    const query = [
+      trimmed,
+      `Category: ${category}`,
+      subOption ? `Type: ${subOption}` : null,
+      location ? `Location: ${location}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    setSending(true);
+    setResponse("");
+
+    try {
+      const result = await openrouterRequest({ query });
+      setResponse(result);
+    } catch (err) {
+      setResponse(err instanceof Error ? err.message : "Request failed");
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -90,9 +123,11 @@ export default function Home() {
       </button>
       <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 shadow-lg">
         <textarea
-          value={value}
+          //value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="What do you want to do?"
+          defaultValue={`Give me a link to a yoga class in ${location} taking place tomorrow morning and the price of the event.`}
+          autoFocus
           rows={3}
           className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-[#e5e5e5] placeholder:text-[#8a8a8a] outline-none"
         />
@@ -124,13 +159,21 @@ export default function Home() {
             <button
               type="button"
               aria-label="Send"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3a3a3a] text-[#a3a3a3] transition-colors hover:bg-[#454545] hover:text-[#d4d4d4]"
+              disabled={sending || !value.trim()}
+              onClick={handleSend}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3a3a3a] text-[#a3a3a3] transition-colors hover:bg-[#454545] hover:text-[#d4d4d4] disabled:opacity-60"
             >
               <EnterIcon />
             </button>
           </div>
         </div>
       </div>
+
+      {response && (
+        <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 text-sm leading-relaxed whitespace-pre-wrap text-[#e5e5e5]">
+          {response}
+        </div>
+      )}
 
       {coords && (
         <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#3f3f3f]">
@@ -146,11 +189,13 @@ function Dropdown<T extends string>({
   options,
   onChange,
   variant,
+  placeholder = "",
 }: {
-  value: T;
+  value: T | "";
   options: readonly T[];
   onChange: (value: T) => void;
   variant: "pill" | "text";
+  placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -186,7 +231,9 @@ function Dropdown<T extends string>({
             ∞
           </span>
         )}
-        <span>{value}</span>
+        <span className={!value ? "text-[#8a8a8a]" : undefined}>
+          {value || placeholder}
+        </span>
         <ChevronDown />
       </button>
 
