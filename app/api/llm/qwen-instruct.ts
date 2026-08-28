@@ -4,8 +4,10 @@ const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
 
 const QUERY_SUFFIX = `
 Only stop when you find an exact link meeting my requirements. 
-Only return the precise link, time, price, description, and location coordinates (latitude and longitude) in JSON format with the keys "link", "time", "price", "description", and "location". Do not include any other text in your response. 
-If you cannot find a link, return {"link": "", "time": "", "price": 0, "description": "", "location": {"latitude": 0, "longitude": 0} } in JSON format.`;
+Only return the precise link, time, price, description, and google maps link in JSON format with the keys "link", "time", "price", "description", and "google_maps_link". 
+Do not include any other text in your response. 
+Find the google maps link by searching for the address of the event in google maps.
+If you cannot find a link, return {"link": "", "time": "", "price": 0, "description": "", "google_maps_link": "" } in JSON format.`;
 
 type MessageContent =
   | { type: "text"; text: string }

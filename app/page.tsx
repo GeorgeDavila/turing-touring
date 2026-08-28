@@ -32,7 +32,7 @@ function buildDefaultQuery(
   subOption: string,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
-  return `Give me a link to a ${type} in ${location}. Time: tomorrow morning. Price: $0 - $20.`;
+  return `Give me a link to a ${type} near ${location}. Time: tomorrow morning. Price: $0 - $20.`;
 }
 
 function isValidLocation(location: string) {
@@ -41,6 +41,50 @@ function isValidLocation(location: string) {
     location !== "Location denied" &&
     location !== "Location unavailable"
   );
+}
+
+function normalizeGoogleMapsUrl(link: string) {
+  return link.startsWith("http") ? link : `https://${link}`;
+}
+
+function extractGoogleMapsDestination(googleMapsLink: string) {
+  const link = normalizeGoogleMapsUrl(googleMapsLink);
+
+  try {
+    const url = new URL(link);
+    const placeMatch = url.pathname.match(/\/place\/([^/@]+)/);
+    if (placeMatch?.[1]) {
+      const destination = decodeURIComponent(placeMatch[1]);
+      return destination.endsWith("/") ? destination : `${destination}/`;
+    }
+
+    const q = url.searchParams.get("q");
+    if (q) {
+      const destination = q.trim().replace(/\s+/g, "+");
+      return destination.endsWith("/") ? destination : `${destination}/`;
+    }
+
+    const parts = url.pathname.split("/").filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last && !["maps", "dir", "place", "search"].includes(last)) {
+      const destination = decodeURIComponent(last);
+      return destination.endsWith("/") ? destination : `${destination}/`;
+    }
+  } catch {
+    // Fall through for non-URL destination strings.
+  }
+
+  const destination = googleMapsLink.trim();
+  return destination.endsWith("/") ? destination : `${destination}/`;
+}
+
+function buildDirectionsLink(
+  coords: [number, number],
+  googleMapsLink: string,
+) {
+  const [longitude, latitude] = coords;
+  const destination = extractGoogleMapsDestination(googleMapsLink);
+  return `https://www.google.com/maps/dir/${latitude},${longitude}/${destination}`;
 }
 
 
@@ -57,7 +101,7 @@ export default function Home() {
     time: string;
     price: number;
     description: string;
-    location: { latitude: number; longitude: number };
+    google_maps_link: string;
   } | null>(null);
   const [responseError, setResponseError] = useState("");
 
@@ -234,7 +278,35 @@ export default function Home() {
               <p>Time: {response.time || "—"}</p>
               <p>Price: {response.price}</p>
               <p>Description: {response.description || "—"}</p>
-              <p>Location: {response.location.latitude}, {response.location.longitude}</p>
+              <p>
+                Location:{" "}
+                {response.google_maps_link ? (
+                  <a
+                    href={
+                      response.google_maps_link.startsWith("http")
+                        ? response.google_maps_link
+                        : `https://${response.google_maps_link}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#7eb6ff] underline underline-offset-2 hover:text-[#a8cdff]"
+                  >
+                    {response.google_maps_link}
+                  </a>
+                ) : (
+                  "—"
+                )}
+              </p>
+              {response.google_maps_link && coords && (
+                <a
+                  href={buildDirectionsLink(coords, response.google_maps_link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-[#3a3a3a] px-3 py-1.5 text-sm text-[#e5e5e5] transition-colors hover:bg-[#454545]"
+                >
+                  Directions →
+                </a>
+              )}
             </div>
           ) : null}
         </div>
