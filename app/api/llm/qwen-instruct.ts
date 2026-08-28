@@ -2,8 +2,7 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
 
-const QUERY_SUFFIX = `
-Only stop when you find an exact link meeting my requirements. 
+const SYSTEM_PROMPT = `Only stop when you find an exact link meeting my requirements. 
 Only return the precise link, date, time, price, description, google maps link, and location coordinates (latitude and longitude) in JSON format with the keys "link", "date", "time", "price", "description", "location", and "google_maps_link". 
 Do not include any other text in your response. 
 Put the date in the format "YYYY-MM-DD". Is the date the target date? If not, drop the result.
@@ -48,7 +47,7 @@ function buildContent({
   audioUrl,
   fileUrl,
 }: OpenRouterRequestOptions): MessageContent[] {
-  const content: MessageContent[] = [{ type: "text", text: query + QUERY_SUFFIX }];
+  const content: MessageContent[] = [{ type: "text", text: query}];
 
   if (imageUrl) {
     content.push({ type: "image_url", image_url: { url: imageUrl } });
@@ -109,6 +108,7 @@ export async function openrouterRequest({
       ],
       tools,
       tool_choice: "auto",
+      system: SYSTEM_PROMPT,
       max_tokens: maxTokens,
       reasoning: { enabled: reasoning },
     }),
