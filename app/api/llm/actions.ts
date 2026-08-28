@@ -22,10 +22,10 @@ export async function openrouterRequest(
 
 export async function openrouterRequestJson(
   options: OpenRouterRequestOptions,
-): Promise<{ link: string, time: string, price: number, description: string, google_maps_link: string }> {
+): Promise<{ link: string, time: string, price: number, description: string, google_maps_link: string, location: { latitude: number, longitude: number } }> {
   const response = await requestOpenRouter(options);
   if (!response) {
-    return { link: "", time: "", price: 0, description: "", google_maps_link: "" };
+    return { link: "", time: "", price: 0, description: "", google_maps_link: "", location: { latitude: 0, longitude: 0 } };
   }
   try {
     const json = JSON.parse(response);
@@ -35,9 +35,10 @@ export async function openrouterRequestJson(
       price: json.price ?? 0,
       description: json.description ?? "",
       google_maps_link: json.google_maps_link ?? "",
+      location: { latitude: json.location.latitude ?? 0, longitude: json.location.longitude ?? 0 },
     };
   } catch (error) {
     console.error(error);
-    return { link: "", time: "", price: 0, description: "", google_maps_link: "" };
+    return { link: "", time: "", price: 0, description: "", google_maps_link: "", location: { latitude: 0, longitude: 0 } };
   }
 }

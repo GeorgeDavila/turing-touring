@@ -13,17 +13,17 @@ const CATEGORIES = ["Events", "Classes", "Tourist", "Nightlife"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const SUB_OPTIONS: Record<Category, string[]> = {
-  Events: ["Music", "Concerts", "Festivals", "Sports", "Theater"],
-  Classes: ["Cooking", "Yoga", "Language", "Pottery", "Art Classes"],
-  Tourist: ["Museums", "Landmarks", "Walking Tours", "Viewpoints", "Shopping Centers"],
-  Nightlife: ["Bars", "Clubs", "Live Music", "Late-Night Eats", "Dance Clubs"],
+  Events: ["Music Events", "Concerts", "Festivals", "Sports Events", "Theater Events"],
+  Classes: ["Cooking Classes", "Yoga Classes", "Language Classes", "Pottery Classes", "Art Classes"],
+  Tourist: ["Museums", "Landmarks", "Walking Tours", "Viewpoints", "Shopping Centers", "Parks", "Beaches", "Hiking Trails", "Historical Sites", "Art Galleries"],
+  Nightlife: ["Bars", "Clubs", "Live Music", "Late-Night Eats", "Dance Clubs", "Nightclubs", "Pubs", "Breweries", "Wine Bars", "Speakeasies"],
 };
 
 const TYPE_FALLBACK: Record<Category, string> = {
-  Events: "event",
-  Classes: "class",
-  Tourist: "tourist attraction",
-  Nightlife: "nightlife spot",
+  Events: "events",
+  Classes: "classes",
+  Tourist: "tourist attractions",
+  Nightlife: "nightlife spots",
 };
 
 function buildDefaultQuery(
@@ -32,7 +32,7 @@ function buildDefaultQuery(
   subOption: string,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
-  return `Give me a link to a ${type} near ${location}. Time: tomorrow morning. Price: $0 - $20.`;
+  return `Give me a link to ${type} near ${location}. Time: tomorrow morning. Price: $0 - $20.`;
 }
 
 function isValidLocation(location: string) {
@@ -88,6 +88,14 @@ function buildDirectionsLink(
 }
 
 
+function toDestinationCoords(location: {
+  latitude: number;
+  longitude: number;
+}): [number, number] | null {
+  if (!location.latitude && !location.longitude) return null;
+  return [location.longitude, location.latitude];
+}
+
 export default function Home() {
   const [value, setValue] = useState("");
   const [category, setCategory] = useState<Category>("Events");
@@ -102,6 +110,7 @@ export default function Home() {
     price: number;
     description: string;
     google_maps_link: string;
+    location: { latitude: number, longitude: number };
   } | null>(null);
   const [responseError, setResponseError] = useState("");
 
@@ -297,6 +306,7 @@ export default function Home() {
                   "—"
                 )}
               </p>
+              <p>Location Coordinates: {response.location.latitude}, {response.location.longitude}</p>
               {response.google_maps_link && coords && (
                 <a
                   href={buildDirectionsLink(coords, response.google_maps_link)}
@@ -314,7 +324,12 @@ export default function Home() {
 
       {coords && (
         <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#3f3f3f]">
-          <MapComponent coords={coords} />
+          <MapComponent
+            coords={coords}
+            destinationCoords={
+              response ? toDestinationCoords(response.location) : null
+            }
+          />
         </div>
       )}
     </div>
