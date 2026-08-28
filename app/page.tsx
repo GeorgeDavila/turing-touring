@@ -33,7 +33,7 @@ function buildDefaultQuery(
   subOption: string,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
-  return `Give me a link to ${type} near ${address}. Time: tomorrow. Price: $0 - $50.`;
+  return `Give me a link to ${type} near ${address} or neighboring areas. Date: this weekend. Time: morning. Price: $0 - $50.`;
 }
 
 function normalizeGoogleMapsUrl(link: string | null) {
@@ -103,6 +103,7 @@ export default function Home() {
   const [sending, setSending] = useState(false);
   const [response, setResponse] = useState<{
     link: string | null;
+    date: string | null;
     time: string | null;
     price: number | null;
     description: string | null;
@@ -280,6 +281,7 @@ export default function Home() {
                   "Not found"
                 )}
               </p>
+              <p>Date: {response.date || "—"}</p>
               <p>Time: {response.time || "—"}</p>
               <p>Price: {response.price}</p>
               <p>Description: {response.description || "—"}</p>
