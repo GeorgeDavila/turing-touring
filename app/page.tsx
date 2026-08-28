@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { openrouterRequest } from "@/app/api/llm/actions";
+import { openrouterRequestJson } from "@/app/api/llm/actions";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   ssr: false,
@@ -32,7 +32,7 @@ function buildDefaultQuery(
   subOption: string,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
-  return `Give me a link to a ${type} in ${location} taking place tomorrow morning and the price of the event.`;
+  return `Give me a link to a ${type} in ${location}. Time: tomorrow morning. Price: $0 - $20.`;
 }
 
 function isValidLocation(location: string) {
@@ -52,7 +52,12 @@ export default function Home() {
   const [coords, setCoords] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
   const [sending, setSending] = useState(false);
-  const [response, setResponse] = useState("");
+  const [response, setResponse] = useState<{
+    link: string;
+    time: string;
+    price: number;
+  } | null>(null);
+  const [responseError, setResponseError] = useState("");
 
   function handleCategoryChange(next: Category) {
     setCategory(next);
@@ -120,13 +125,14 @@ export default function Home() {
       .join("\n");
 
     setSending(true);
-    setResponse("");
+    setResponse(null);
+    setResponseError("");
 
     try {
-      const result = await openrouterRequest({ query });
+      const result = await openrouterRequestJson({ query });
       setResponse(result);
     } catch (err) {
-      setResponse(err instanceof Error ? err.message : "Request failed");
+      setResponseError(err instanceof Error ? err.message : "Request failed");
     } finally {
       setSending(false);
     }
@@ -198,9 +204,35 @@ export default function Home() {
         </div>
       </div>
 
-      {response && (
-        <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 text-sm leading-relaxed whitespace-pre-wrap text-[#e5e5e5]">
-          {response}
+      {(response || responseError) && (
+        <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 text-sm leading-relaxed text-[#e5e5e5]">
+          {responseError ? (
+            responseError
+          ) : response ? (
+            <div className="space-y-1">
+              <p>
+                Link:{" "}
+                {response.link ? (
+                  <a
+                    href={
+                      response.link.startsWith("http")
+                        ? response.link
+                        : `https://${response.link}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#7eb6ff] underline underline-offset-2 hover:text-[#a8cdff]"
+                  >
+                    {response.link}
+                  </a>
+                ) : (
+                  "Not found"
+                )}
+              </p>
+              <p>Time: {response.time || "—"}</p>
+              <p>Price: {response.price}</p>
+            </div>
+          ) : null}
         </div>
       )}
 
