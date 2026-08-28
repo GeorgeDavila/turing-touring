@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getAddress, getCity } from "@/app/api/geo/actions";
 import { openrouterRequestJson } from "@/app/api/llm/actions";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
@@ -27,30 +28,25 @@ const TYPE_FALLBACK: Record<Category, string> = {
 };
 
 function buildDefaultQuery(
-  location: string,
+  address: string,
   category: Category,
   subOption: string,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
-  return `Give me a link to ${type} near ${location}. Time: tomorrow morning. Price: $0 - $20.`;
+  return `Give me a link to ${type} near ${address}. Time: tomorrow morning. Price: $0 - $20.`;
 }
 
-function isValidLocation(location: string) {
-  return (
-    location.length > 0 &&
-    location !== "Location denied" &&
-    location !== "Location unavailable"
-  );
-}
-
-function normalizeGoogleMapsUrl(link: string) {
+function normalizeGoogleMapsUrl(link: string | null) {
+  if (!link) return null;
   return link.startsWith("http") ? link : `https://${link}`;
 }
 
-function extractGoogleMapsDestination(googleMapsLink: string) {
+function extractGoogleMapsDestination(googleMapsLink: string | null) {
+  if (!googleMapsLink) return null;
   const link = normalizeGoogleMapsUrl(googleMapsLink);
 
   try {
+    if (!link) return null;
     const url = new URL(link);
     const placeMatch = url.pathname.match(/\/place\/([^/@]+)/);
     if (placeMatch?.[1]) {
@@ -101,16 +97,17 @@ export default function Home() {
   const [category, setCategory] = useState<Category>("Events");
   const [subOption, setSubOption] = useState("");
   const [location, setLocation] = useState("");
+  const [address, setAddress] = useState("");
   const [coords, setCoords] = useState<[number, number] | null>(null);
   const [locating, setLocating] = useState(false);
   const [sending, setSending] = useState(false);
   const [response, setResponse] = useState<{
-    link: string;
-    time: string;
-    price: number;
-    description: string;
-    google_maps_link: string;
-    location: { latitude: number, longitude: number };
+    link: string | null;
+    time: string | null;
+    price: number | null;
+    description: string | null;
+    google_maps_link: string | null;
+    location: { latitude: number, longitude: number } | null;
   } | null>(null);
   const [responseError, setResponseError] = useState("");
 
@@ -122,6 +119,7 @@ export default function Home() {
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setLocation("Location unavailable");
+      setAddress("");
       setCoords(null);
       return;
     }
@@ -132,25 +130,22 @@ export default function Home() {
         try {
           const { latitude, longitude } = position.coords;
           setCoords([longitude, latitude]);
-          const res = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
-          );
-          const data = await res.json();
-          const name =
-            [data.city || data.locality, data.principalSubdivision, data.countryName]
-              .filter(Boolean)
-              .filter((part, i, arr) => arr.indexOf(part) === i)
-              .slice(0, 2)
-              .join(", ") || "Unknown place";
-          setLocation(name);
+          const [city, addressResult] = await Promise.all([
+            getCity(latitude, longitude),
+            getAddress(latitude, longitude),
+          ]);
+          setLocation(city);
+          setAddress(addressResult.formatted);
         } catch {
           setLocation("Unknown place");
+          setAddress("");
         } finally {
           setLocating(false);
         }
       },
       () => {
         setLocation("Location denied");
+        setAddress("");
         setCoords(null);
         setLocating(false);
       },
@@ -162,9 +157,9 @@ export default function Home() {
   }, [handleGetLocation]);
 
   useEffect(() => {
-    if (!isValidLocation(location)) return;
-    setValue(buildDefaultQuery(location, category, subOption));
-  }, [location, category, subOption]);
+    if (!address) return;
+    setValue(buildDefaultQuery(address, category, subOption));
+  }, [address, category, subOption]);
 
   async function handleSend() {
     const trimmed = value.trim();
@@ -174,7 +169,8 @@ export default function Home() {
       trimmed,
       `Category: ${category}`,
       subOption ? `Type: ${subOption}` : null,
-      location ? `Location: ${location}` : null,
+      address ? `Address: ${address}` : null,
+      location ? `City: ${location}` : null,
     ]
       .filter(Boolean)
       .join("\n");
@@ -199,7 +195,7 @@ export default function Home() {
         Turing Touring
       </h1>
 
-      {/* geolocation api to get the user's location */}
+      {/* geolocation button to get the user's location */}
       <button
         className="rounded-md bg-[#3a3a3a] px-4 py-2 text-sm text-[#e5e5e5] transition-colors hover:bg-[#454545] disabled:opacity-60"
         type="button"
@@ -248,12 +244,12 @@ export default function Home() {
             </button>
             <button
               type="button"
-              aria-label="Send"
+              aria-label={sending ? "Sending" : "Send"}
               disabled={sending || !value.trim()}
               onClick={handleSend}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3a3a3a] text-[#a3a3a3] transition-colors hover:bg-[#454545] hover:text-[#d4d4d4] disabled:opacity-60"
             >
-              <EnterIcon />
+              {sending ? <SpinnerIcon /> : <EnterIcon />}
             </button>
           </div>
         </div>
@@ -306,7 +302,7 @@ export default function Home() {
                   "—"
                 )}
               </p>
-              <p>Location Coordinates: {response.location.latitude}, {response.location.longitude}</p>
+              <p>Location Coordinates: {response.location?.latitude}, {response.location?.longitude}</p>
               {response.google_maps_link && coords && (
                 <a
                   href={buildDirectionsLink(coords, response.google_maps_link)}
@@ -327,7 +323,7 @@ export default function Home() {
           <MapComponent
             coords={coords}
             destinationCoords={
-              response ? toDestinationCoords(response.location) : null
+              response?.location ? toDestinationCoords(response.location!) : null
             }
           />
         </div>
@@ -454,6 +450,34 @@ function PaperclipIcon() {
         strokeWidth="1.75"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className="animate-spin"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeOpacity="0.25"
+      />
+      <path
+        d="M12 3a9 9 0 019 9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
       />
     </svg>
   );
