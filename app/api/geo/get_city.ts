@@ -1,32 +1,53 @@
 const REVERSE_GEOCODE_URL =
-  "https://api.bigdatacloud.net/data/reverse-geocode-client";
+  "https://nominatim.openstreetmap.org/reverse";
 
-type ReverseGeocodeResponse = {
+export type AddressResult = {
+  formatted: string;
   city?: string;
   locality?: string;
   principalSubdivision?: string;
   countryName?: string;
+  postcode?: string;
+};
+
+type NominatimResponse = {
+  display_name?: string;
+  address?: {
+    house_number?: string;
+    road?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    state?: string;
+    country?: string;
+    postcode?: string;
+  };
 };
 
 export async function getCityFromCoords(
   latitude: number,
   longitude: number,
 ): Promise<string> {
-  const response = await fetch(
-    `${REVERSE_GEOCODE_URL}?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`,
-  );
+  const url = `${REVERSE_GEOCODE_URL}?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1&localityLanguage=en`;
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "TuringTouring/1.0",
+    },
+  });
 
   if (!response.ok) {
     throw new Error(`Reverse geocode failed (${response.status})`);
   }
 
-  const data = (await response.json()) as ReverseGeocodeResponse;
+  const data = (await response.json()) as NominatimResponse;
+  const addr = data.address;
 
   return (
-    [data.city || data.locality, data.principalSubdivision, data.countryName]
-      .filter(Boolean)
-      .filter((part, i, arr) => arr.indexOf(part) === i)
-      .slice(0, 2)
-      .join(", ") || "Unknown place"
+    addr?.city ??
+    addr?.town ??
+    addr?.village ??
+    "Unknown place"
   );
 }

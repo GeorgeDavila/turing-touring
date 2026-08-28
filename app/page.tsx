@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAddress, getCity } from "@/app/api/geo/actions";
+import { getAddressSimple, getCity } from "@/app/api/geo/actions";
 import { openrouterRequestJson } from "@/app/api/llm/actions";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
@@ -33,7 +33,7 @@ function buildDefaultQuery(
   subOption: string,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
-  return `Give me a link to ${type} near ${address}. Time: tomorrow morning. Price: $0 - $20.`;
+  return `Give me a link to ${type} near ${address}. Time: tomorrow. Price: $0 - $50.`;
 }
 
 function normalizeGoogleMapsUrl(link: string | null) {
@@ -132,10 +132,10 @@ export default function Home() {
           setCoords([longitude, latitude]);
           const [city, addressResult] = await Promise.all([
             getCity(latitude, longitude),
-            getAddress(latitude, longitude),
+            getAddressSimple(latitude, longitude),
           ]);
           setLocation(city);
-          setAddress(addressResult.formatted);
+          setAddress(addressResult);
         } catch {
           setLocation("Unknown place");
           setAddress("");

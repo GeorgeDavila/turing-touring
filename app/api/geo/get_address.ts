@@ -3,6 +3,8 @@ const REVERSE_GEOCODE_URL =
 
 export type AddressResult = {
   formatted: string;
+  houseNumber?: string;
+  road?: string;
   city?: string;
   locality?: string;
   principalSubdivision?: string;
@@ -46,6 +48,8 @@ export async function getAddressFromCoords(
 
   return {
     formatted: data.display_name ?? "Unknown address",
+    houseNumber: addr?.house_number,
+    road: addr?.road,
     city: addr?.city ?? addr?.town ?? addr?.village,
     locality: addr?.suburb ?? addr?.neighbourhood,
     principalSubdivision: addr?.state,
