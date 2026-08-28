@@ -56,6 +56,8 @@ export default function Home() {
     link: string;
     time: string;
     price: number;
+    description: string;
+    location: { latitude: number; longitude: number };
   } | null>(null);
   const [responseError, setResponseError] = useState("");
 
@@ -231,6 +233,8 @@ export default function Home() {
               </p>
               <p>Time: {response.time || "—"}</p>
               <p>Price: {response.price}</p>
+              <p>Description: {response.description || "—"}</p>
+              <p>Location: {response.location.latitude}, {response.location.longitude}</p>
             </div>
           ) : null}
         </div>

@@ -34,9 +34,10 @@ export async function openrouterRequestJson(
       time: json.time ?? "",
       price: json.price ?? 0,
       description: json.description ?? "",
-      location: json.location ?? { latitude: 0, longitude: 0 },
+      location: { latitude: json.location.latitude ?? 0, longitude: json.location.longitude ?? 0 },
     };
   } catch (error) {
+    console.error(error);
     return { link: "", time: "", price: 0, description: "", location: { latitude: 0, longitude: 0 } };
   }
 }
