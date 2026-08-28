@@ -92,7 +92,7 @@ function toDestinationCoords(location: {
   latitude: number;
   longitude: number;
 }): [number, number] | null {
-  if (!location.latitude && !location.longitude) return null;
+  if (location.latitude === 0 && location.longitude === 0) return null;
   return [location.longitude, location.latitude];
 }
 
