@@ -19,3 +19,24 @@ export async function openrouterRequest(
 ): Promise<string> {
   return requestOpenRouter(options);
 }
+
+export async function openrouterRequestJson(
+  options: OpenRouterRequestOptions,
+): Promise<{ link: string, time: string, price: number, description: string, location: { latitude: number, longitude: number } }> {
+  const response = await requestOpenRouter(options);
+  if (!response) {
+    return { link: "", time: "", price: 0, description: "", location: { latitude: 0, longitude: 0 } };
+  }
+  try {
+    const json = JSON.parse(response);
+    return {
+      link: json.link ?? "",
+      time: json.time ?? "",
+      price: json.price ?? 0,
+      description: json.description ?? "",
+      location: json.location ?? { latitude: 0, longitude: 0 },
+    };
+  } catch (error) {
+    return { link: "", time: "", price: 0, description: "", location: { latitude: 0, longitude: 0 } };
+  }
+}

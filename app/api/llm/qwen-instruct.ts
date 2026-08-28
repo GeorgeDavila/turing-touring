@@ -2,20 +2,10 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
 
-const QUERY_SUFFIX = "\nOnly stop when you find an exact link meeting my requirements. \nOnly return the precise link, time, and price in json format. Do not include any other text in your response.";
-
-function convertResponseToJson(response: string): { link: string, time: string, price: number } {
-  try {
-    const json = JSON.parse(response);
-    return {
-      link: json.link,
-      time: json.time,
-      price: json.price,
-    };
-  } catch (error) {
-    throw new Error("Invalid JSON response");
-  }
-}
+const QUERY_SUFFIX = `
+Only stop when you find an exact link meeting my requirements. 
+Only return the precise link, time, price, description, and location coordinates (latitude and longitude) in JSON format with the keys "link", "time", "price", "description", and "location". Do not include any other text in your response. 
+If you cannot find a link, return {"link": "", "time": "", "price": 0, "description": "", "location": {"latitude": 0, "longitude": 0} } in JSON format.`;
 
 type MessageContent =
   | { type: "text"; text: string }
