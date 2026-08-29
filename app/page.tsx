@@ -8,21 +8,15 @@ import {
   DEFAULT_MODEL,
   type ModelId,
 } from "@/components/ModelOptionDropdown";
+import CategoryOptions, {
+  type Category,
+} from "@/components/CategoryOptions";
+import DateCalendar, { startOfDay } from "@/components/DateCalendar";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   ssr: false,
   loading: () => <p>Loading Map...</p>,
 });
-
-const CATEGORIES = ["Events", "Classes", "Tourist", "Nightlife"] as const;
-type Category = (typeof CATEGORIES)[number];
-
-const SUB_OPTIONS: Record<Category, string[]> = {
-  Events: ["Music Events", "Concerts", "Festivals", "Sports Events", "Theater Events"],
-  Classes: ["Cooking Classes", "Yoga Classes", "Language Classes", "Pottery Classes", "Art Classes"],
-  Tourist: ["Museums", "Landmarks", "Walking Tours", "Viewpoints", "Shopping Centers", "Parks", "Beaches", "Hiking Trails", "Historical Sites", "Art Galleries"],
-  Nightlife: ["Bars", "Clubs", "Live Music", "Late-Night Eats", "Dance Clubs", "Nightclubs", "Pubs", "Breweries", "Wine Bars", "Speakeasies"],
-};
 
 const TYPE_FALLBACK: Record<Category, string> = {
   Events: "events",
@@ -56,8 +50,6 @@ const TIME_INTERVALS = [
 ] as const;
 
 type TimeSelection = TimePreset | (typeof TIME_INTERVALS)[number];
-
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
 
 function formatDateKey(date: Date) {
   const y = date.getFullYear();
@@ -125,51 +117,6 @@ function buildDirectionsLink(
   return `https://www.google.com/maps/dir/${latitude},${longitude}/${destination}`;
 }
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function isSameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function getCalendarDays(viewMonth: Date) {
-  const year = viewMonth.getFullYear();
-  const month = viewMonth.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const startOffset = firstDay.getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const days: Array<{ date: Date; inMonth: boolean }> = [];
-
-  for (let i = startOffset - 1; i >= 0; i -= 1) {
-    days.push({
-      date: new Date(year, month, -i),
-      inMonth: false,
-    });
-  }
-
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    days.push({
-      date: new Date(year, month, day),
-      inMonth: true,
-    });
-  }
-
-  while (days.length % 7 !== 0) {
-    const last = days[days.length - 1].date;
-    days.push({
-      date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1),
-      inMonth: false,
-    });
-  }
-
-  return days;
-}
-
 function toDestinationCoords(location: {
   latitude: number;
   longitude: number;
@@ -199,12 +146,7 @@ export default function Home() {
   } | null>(null);
   const [responseError, setResponseError] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
-  const [viewMonth, setViewMonth] = useState(
-    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-  );
   const [timeSelection, setTimeSelection] = useState<TimeSelection>("any");
-  const today = startOfDay(new Date());
-  const calendarDays = getCalendarDays(viewMonth);
 
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -299,10 +241,9 @@ export default function Home() {
     setSubOption(nextSubOption);
   }
 
-  function shiftMonth(delta: number) {
-    setViewMonth(
-      (current) => new Date(current.getFullYear(), current.getMonth() + delta, 1),
-    );
+  function handleCategoryClick(nextCategory: Category) {
+    setCategory(nextCategory);
+    setSubOption("");
   }
 
   // Avoid unused-variable warnings while query logic is retained for later.
@@ -331,95 +272,54 @@ export default function Home() {
 
       <div className="flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
-          {CATEGORIES.map((cat) => (
-            <section key={cat} className="flex flex-col gap-3">
-              <h2 className="text-sm font-medium tracking-wide text-[#a3a3a3] uppercase">
-                {cat}
-              </h2>
-              <div className="flex flex-wrap gap-2">
-                {SUB_OPTIONS[cat].map((option) => {
-                  const selected = category === cat && subOption === option;
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => handleSubOptionClick(cat, option)}
-                      className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
-                        selected
-                          ? "bg-[#e5e5e5] text-[#1a1a1a]"
-                          : "bg-[#3a3a3a] text-[#d4d4d4] hover:bg-[#454545]"
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
+          <div className="rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 text-sm text-[#e5e5e5]">
+            <h2 className="mb-3 text-sm font-medium tracking-wide text-[#a3a3a3] uppercase">
+              Your selections
+            </h2>
+            <dl className="space-y-2">
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-[#8a8a8a]">Category</dt>
+                <dd>{category}</dd>
               </div>
-            </section>
-          ))}
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-[#8a8a8a]">Type</dt>
+                <dd>{subOption || "—"}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-[#8a8a8a]">Date</dt>
+                <dd>
+                  {selectedDate.toLocaleDateString("en-US", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-[#8a8a8a]">Time</dt>
+                <dd className="capitalize">{timeSelection}</dd>
+              </div>
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-[#8a8a8a]">Location</dt>
+                <dd>{location || "—"}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <CategoryOptions
+            category={category}
+            subOption={subOption}
+            onCategoryClick={handleCategoryClick}
+            onSubOptionClick={handleSubOptionClick}
+          />
         </div>
 
         <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-80">
-          <div className="rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => shiftMonth(-1)}
-                className="rounded-md px-2 py-1 text-[#a3a3a3] transition-colors hover:bg-[#3a3a3a] hover:text-[#e5e5e5]"
-                aria-label="Previous month"
-              >
-                ‹
-              </button>
-              <h3 className="text-sm font-medium text-[#e5e5e5]">
-                {viewMonth.toLocaleString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </h3>
-              <button
-                type="button"
-                onClick={() => shiftMonth(1)}
-                className="rounded-md px-2 py-1 text-[#a3a3a3] transition-colors hover:bg-[#3a3a3a] hover:text-[#e5e5e5]"
-                aria-label="Next month"
-              >
-                ›
-              </button>
-            </div>
-
-            <div className="mb-1 grid grid-cols-7 gap-1">
-              {WEEKDAYS.map((day) => (
-                <div
-                  key={day}
-                  className="py-1 text-center text-xs text-[#8a8a8a]"
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map(({ date, inMonth }) => {
-                const selected = isSameDay(date, selectedDate);
-                const isToday = isSameDay(date, today);
-                return (
-                  <button
-                    key={date.toISOString()}
-                    type="button"
-                    onClick={() => setSelectedDate(startOfDay(date))}
-                    className={`aspect-square rounded-lg text-sm transition-colors ${
-                      selected
-                        ? "bg-[#e5e5e5] text-[#1a1a1a]"
-                        : inMonth
-                          ? "text-[#d4d4d4] hover:bg-[#3a3a3a]"
-                          : "text-[#5a5a5a] hover:bg-[#333333]"
-                    } ${isToday && !selected ? "ring-1 ring-[#6b6b6b]" : ""}`}
-                  >
-                    {date.getDate()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <DateCalendar
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+          />
 
           <div className="rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
             <h3 className="mb-3 text-sm font-medium text-[#e5e5e5]">Time</h3>
