@@ -11,7 +11,11 @@ import {
 import CategoryOptions, {
   type Category,
 } from "@/components/CategoryOptions";
-import DateCalendar, { startOfDay } from "@/components/DateCalendar";
+import DateCalendar, {
+  dateForPreset,
+  startOfDay,
+  type DatePreset,
+} from "@/components/DateCalendar";
 import TimeSelectionPanel, {
   DEFAULT_TIME_SELECTION,
   type TimeSelection,
@@ -45,13 +49,15 @@ function buildDefaultQuery(
   category: Category,
   subOption: string,
   date: Date,
+  datePreset: DatePreset | null,
   time: TimeSelection,
   priceMin: number,
   priceMax: number,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
   const timeLabel = time === "any" ? "any time" : time;
-  return `Give me a link to ${type} near ${address} or neighboring areas. Date: ${formatDateKey(date)}. Time: ${timeLabel}. Price: $${priceMin} - $${priceMax}.`;
+  const dateLabel = datePreset ?? formatDateKey(date);
+  return `Give me a link to ${type} near ${address} or neighboring areas. Date: ${dateLabel}. Time: ${timeLabel}. Price: $${priceMin} - $${priceMax}.`;
 }
 
 function normalizeGoogleMapsUrl(link: string | null) {
@@ -129,7 +135,9 @@ export default function Home() {
     location: { latitude: number; longitude: number } | null;
   } | null>(null);
   const [responseError, setResponseError] = useState("");
+  const [sentQuery, setSentQuery] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
+  const [datePreset, setDatePreset] = useState<DatePreset | null>("today");
   const [timeSelection, setTimeSelection] = useState<TimeSelection>(
     DEFAULT_TIME_SELECTION,
   );
@@ -184,12 +192,22 @@ export default function Home() {
         category,
         subOption,
         selectedDate,
+        datePreset,
         timeSelection,
         priceMin,
         priceMax,
       ),
     );
-  }, [address, category, subOption, selectedDate, timeSelection, priceMin, priceMax]);
+  }, [
+    address,
+    category,
+    subOption,
+    selectedDate,
+    datePreset,
+    timeSelection,
+    priceMin,
+    priceMax,
+  ]);
 
   async function handleSend() {
     const trimmed = value.trim();
@@ -201,7 +219,7 @@ export default function Home() {
       subOption ? `Type: ${subOption}` : null,
       address ? `Address: ${address}` : null,
       location ? `City: ${location}` : null,
-      `Date: ${formatDateKey(selectedDate)}`,
+      `Date: ${datePreset ?? formatDateKey(selectedDate)}`,
       `Time: ${timeSelection}`,
       `Price: $${priceMin} - $${priceMax}`,
     ]
@@ -209,6 +227,7 @@ export default function Home() {
       .join("\n");
 
     setSending(true);
+    setSentQuery(query);
     setResponse(null);
     setResponseError("");
 
@@ -234,6 +253,16 @@ export default function Home() {
   function handleCategoryClick(nextCategory: Category) {
     setCategory(nextCategory);
     setSubOption("");
+  }
+
+  function handleSelectDate(date: Date) {
+    setDatePreset(null);
+    setSelectedDate(date);
+  }
+
+  function handleSelectPreset(preset: DatePreset) {
+    setDatePreset(preset);
+    setSelectedDate(dateForPreset(preset));
   }
 
   // Model controls retained for later reuse.
@@ -276,13 +305,14 @@ export default function Home() {
               </div>
               <div className="flex gap-2">
                 <dt className="w-20 shrink-0 text-[#8a8a8a]">Date</dt>
-                <dd>
-                  {selectedDate.toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                <dd className="capitalize">
+                  {datePreset ??
+                    selectedDate.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
                 </dd>
               </div>
               <div className="flex gap-2">
@@ -315,21 +345,14 @@ export default function Home() {
             onMinChange={setPriceMin}
             onMaxChange={setPriceMax}
           />
-
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={sending || !value.trim()}
-            className="w-full rounded-xl bg-[#e5e5e5] px-4 py-3 text-sm font-medium text-[#1a1a1a] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {sending ? "Searching…" : "Search"}
-          </button>
         </div>
 
         <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-80">
           <DateCalendar
             selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
+            datePreset={datePreset}
+            onSelectDate={handleSelectDate}
+            onSelectPreset={handleSelectPreset}
           />
 
           <TimeSelectionPanel
@@ -403,6 +426,21 @@ export default function Home() {
             </div>
           ) : null}
         </div>
+      )}
+
+      <button
+        type="button"
+        onClick={handleSend}
+        disabled={sending || !value.trim()}
+        className="w-full max-w-6xl rounded-xl bg-[#e5e5e5] px-4 py-3 text-sm font-medium text-[#1a1a1a] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {sending ? "Searching…" : "Search"}
+      </button>
+
+      {sentQuery && (
+        <pre className="w-full max-w-6xl whitespace-pre-wrap font-sans text-sm text-[#a3a3a3]">
+          {sentQuery}
+        </pre>
       )}
 
       {coords && (
