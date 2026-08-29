@@ -191,7 +191,6 @@ export default function Home() {
     );
   }, [address, category, subOption, selectedDate, timeSelection, priceMin, priceMax]);
 
-  // Kept for later reuse with the category buttons.
   async function handleSend() {
     const trimmed = value.trim();
     if (!trimmed || sending) return;
@@ -237,8 +236,7 @@ export default function Home() {
     setSubOption("");
   }
 
-  // Avoid unused-variable warnings while query logic is retained for later.
-  void handleSend;
+  // Model controls retained for later reuse.
   void setModel;
   void setMaxTokens;
 
@@ -317,6 +315,15 @@ export default function Home() {
             onMinChange={setPriceMin}
             onMaxChange={setPriceMax}
           />
+
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sending || !value.trim()}
+            className="w-full rounded-xl bg-[#e5e5e5] px-4 py-3 text-sm font-medium text-[#1a1a1a] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {sending ? "Searching…" : "Search"}
+          </button>
         </div>
 
         <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-80">
