@@ -24,6 +24,18 @@ export default function Header() {
             VLM
           </Link>
           <Link
+            href="/walking-tour"
+            className="text-[#a3a3a3] transition-colors hover:text-[#e5e5e5]"
+          >
+            Walking Tour
+          </Link>
+          <Link
+            href="/talking-tour"
+            className="text-[#a3a3a3] transition-colors hover:text-[#e5e5e5]"
+          >
+            Talking Tour
+          </Link>
+          <Link
             href="/chat"
             className="text-[#a3a3a3] transition-colors hover:text-[#e5e5e5]"
           >
