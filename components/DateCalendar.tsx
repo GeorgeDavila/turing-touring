@@ -1,11 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
 
+export const DATE_PRESETS = [
+  "today",
+  "tomorrow",
+  "this weekend",
+  "this week",
+  "next weekend",
+  "next week",
+  "this month",
+] as const;
+
+export type DatePreset = (typeof DATE_PRESETS)[number];
+
 export function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date: Date, days: number) {
+  return startOfDay(
+    new Date(date.getFullYear(), date.getMonth(), date.getDate() + days),
+  );
+}
+
+function startOfWeek(date: Date) {
+  return addDays(date, -date.getDay());
+}
+
+/** Saturday of the weekend that contains `date` (or the upcoming one if mid-week). */
+function thisWeekendStart(date: Date) {
+  const day = date.getDay();
+  if (day === 0) return addDays(date, -1); // Sunday → prior Saturday
+  if (day === 6) return date; // Saturday
+  return addDays(date, 6 - day); // Mon–Fri → upcoming Saturday
+}
+
+function nextWeekendStart(date: Date) {
+  return addDays(thisWeekendStart(date), 7);
+}
+
+export function dateForPreset(preset: DatePreset, from = new Date()): Date {
+  const today = startOfDay(from);
+  switch (preset) {
+    case "today":
+      return today;
+    case "tomorrow":
+      return addDays(today, 1);
+    case "this weekend":
+      return thisWeekendStart(today);
+    case "this week":
+      return startOfWeek(today);
+    case "next weekend":
+      return nextWeekendStart(today);
+    case "next week":
+      return addDays(startOfWeek(today), 7);
+    case "this month":
+      return new Date(today.getFullYear(), today.getMonth(), 1);
+  }
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -51,18 +105,28 @@ function getCalendarDays(viewMonth: Date) {
 
 type DateCalendarProps = {
   selectedDate: Date;
+  datePreset: DatePreset | null;
   onSelectDate: (date: Date) => void;
+  onSelectPreset: (preset: DatePreset) => void;
 };
 
 export default function DateCalendar({
   selectedDate,
+  datePreset,
   onSelectDate,
+  onSelectPreset,
 }: DateCalendarProps) {
   const [viewMonth, setViewMonth] = useState(
     () => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
   );
   const today = startOfDay(new Date());
   const calendarDays = getCalendarDays(viewMonth);
+
+  useEffect(() => {
+    setViewMonth(
+      new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
+    );
+  }, [selectedDate]);
 
   function shiftMonth(delta: number) {
     setViewMonth(
@@ -73,6 +137,25 @@ export default function DateCalendar({
 
   return (
     <div className="rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
+      <h3 className="mb-3 text-sm font-medium text-[#e5e5e5]">Date</h3>
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {DATE_PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => onSelectPreset(preset)}
+            className={`rounded-full px-3 py-1.5 text-sm capitalize transition-colors ${
+              datePreset === preset
+                ? "bg-[#e5e5e5] text-[#1a1a1a]"
+                : "bg-[#3a3a3a] text-[#d4d4d4] hover:bg-[#454545]"
+            }`}
+          >
+            {preset}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
@@ -82,12 +165,12 @@ export default function DateCalendar({
         >
           ‹
         </button>
-        <h3 className="text-sm font-medium text-[#e5e5e5]">
+        <p className="text-sm font-medium text-[#e5e5e5]">
           {viewMonth.toLocaleString("en-US", {
             month: "long",
             year: "numeric",
           })}
-        </h3>
+        </p>
         <button
           type="button"
           onClick={() => shiftMonth(1)}
