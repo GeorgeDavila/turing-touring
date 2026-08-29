@@ -23,6 +23,12 @@ export default function Header() {
           >
             VLM
           </Link>
+          <Link
+            href="/chat"
+            className="text-[#a3a3a3] transition-colors hover:text-[#e5e5e5]"
+          >
+            Chat
+          </Link>
         </div>
       </nav>
     </header>

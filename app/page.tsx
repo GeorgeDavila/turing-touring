@@ -4,6 +4,10 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getAddressSimple, getCity } from "@/app/api/geo/actions";
 import { openrouterRequestJson } from "@/app/api/llm/actions";
+import ModelOptionDropdown, {
+  DEFAULT_MODEL,
+  type ModelId,
+} from "@/components/ModelOptionDropdown";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   ssr: false,
@@ -96,6 +100,7 @@ export default function Home() {
   const [value, setValue] = useState("");
   const [category, setCategory] = useState<Category>("Events");
   const [subOption, setSubOption] = useState("");
+  const [model, setModel] = useState<ModelId>(DEFAULT_MODEL);
   const [location, setLocation] = useState("");
   const [address, setAddress] = useState("");
   const [coords, setCoords] = useState<[number, number] | null>(null);
@@ -181,7 +186,7 @@ export default function Home() {
     setResponseError("");
 
     try {
-      const result = await openrouterRequestJson({ query });
+      const result = await openrouterRequestJson({ query, model: model as ModelId });
       setResponse(result);
     } catch (err) {
       setResponseError(err instanceof Error ? err.message : "Request failed");
@@ -233,6 +238,7 @@ export default function Home() {
               onChange={setSubOption}
               variant="text"
             />
+            <ModelOptionDropdown value={model} onChange={setModel} />
           </div>
 
           <div className="flex items-center gap-1.5">

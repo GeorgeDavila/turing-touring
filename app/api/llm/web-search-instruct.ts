@@ -1,6 +1,7 @@
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
+//const DEFAULT_MODEL = "deepseek/deepseek-v4-pro";
 
 const SYSTEM_PROMPT = `Only stop when you find an exact link meeting my requirements. 
 Only return the precise link, date, time, price, description, google maps link, and location coordinates (latitude and longitude) in JSON format with the keys "link", "date", "time", "price", "description", "location", and "google_maps_link". 
@@ -67,9 +68,9 @@ function buildContent({
 
 export async function openrouterRequest({
   query,
-  model = DEFAULT_MODEL,
+  model,
   useWebSearch = true,
-  maxTokens = 4000,
+  maxTokens,
   reasoning = true,
   imageUrl = null,
   videoUrl = null,
@@ -77,6 +78,12 @@ export async function openrouterRequest({
   fileUrl = null,
 }: OpenRouterRequestOptions): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!model) {
+    model = DEFAULT_MODEL;
+  }
+  if (!maxTokens) {
+    maxTokens = 4000;
+  }
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY is not set");
   }

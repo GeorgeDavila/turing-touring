@@ -1,6 +1,6 @@
 "use server";
 
-import { openrouterRequest as requestOpenRouter } from "./qwen-instruct";
+import { openrouterRequest as requestOpenRouter } from "./web-search-instruct";
 
 type OpenRouterRequestOptions = {
   query: string;
