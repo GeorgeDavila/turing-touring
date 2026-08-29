@@ -16,6 +16,10 @@ import TimeSelectionPanel, {
   DEFAULT_TIME_SELECTION,
   type TimeSelection,
 } from "@/components/TimeSelectionPanel";
+import PriceRangePanel, {
+  DEFAULT_PRICE_MAX,
+  DEFAULT_PRICE_MIN,
+} from "@/components/PriceRangePanel";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   ssr: false,
@@ -42,10 +46,12 @@ function buildDefaultQuery(
   subOption: string,
   date: Date,
   time: TimeSelection,
+  priceMin: number,
+  priceMax: number,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
   const timeLabel = time === "any" ? "any time" : time;
-  return `Give me a link to ${type} near ${address} or neighboring areas. Date: ${formatDateKey(date)}. Time: ${timeLabel}. Price: $0 - $50.`;
+  return `Give me a link to ${type} near ${address} or neighboring areas. Date: ${formatDateKey(date)}. Time: ${timeLabel}. Price: $${priceMin} - $${priceMax}.`;
 }
 
 function normalizeGoogleMapsUrl(link: string | null) {
@@ -127,6 +133,8 @@ export default function Home() {
   const [timeSelection, setTimeSelection] = useState<TimeSelection>(
     DEFAULT_TIME_SELECTION,
   );
+  const [priceMin, setPriceMin] = useState(DEFAULT_PRICE_MIN);
+  const [priceMax, setPriceMax] = useState(DEFAULT_PRICE_MAX);
 
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -177,9 +185,11 @@ export default function Home() {
         subOption,
         selectedDate,
         timeSelection,
+        priceMin,
+        priceMax,
       ),
     );
-  }, [address, category, subOption, selectedDate, timeSelection]);
+  }, [address, category, subOption, selectedDate, timeSelection, priceMin, priceMax]);
 
   // Kept for later reuse with the category buttons.
   async function handleSend() {
@@ -194,6 +204,7 @@ export default function Home() {
       location ? `City: ${location}` : null,
       `Date: ${formatDateKey(selectedDate)}`,
       `Time: ${timeSelection}`,
+      `Price: $${priceMin} - $${priceMax}`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -284,6 +295,12 @@ export default function Home() {
                 <dt className="w-20 shrink-0 text-[#8a8a8a]">Location</dt>
                 <dd>{location || "—"}</dd>
               </div>
+              <div className="flex gap-2">
+                <dt className="w-20 shrink-0 text-[#8a8a8a]">Price</dt>
+                <dd>
+                  ${priceMin} – ${priceMax}
+                </dd>
+              </div>
             </dl>
           </div>
 
@@ -292,6 +309,13 @@ export default function Home() {
             subOption={subOption}
             onCategoryClick={handleCategoryClick}
             onSubOptionClick={handleSubOptionClick}
+          />
+
+          <PriceRangePanel
+            min={priceMin}
+            max={priceMax}
+            onMinChange={setPriceMin}
+            onMaxChange={setPriceMax}
           />
         </div>
 
