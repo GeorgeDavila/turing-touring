@@ -101,6 +101,7 @@ export default function Home() {
   const [category, setCategory] = useState<Category>("Events");
   const [subOption, setSubOption] = useState("");
   const [model, setModel] = useState<ModelId>(DEFAULT_MODEL);
+  const [maxTokens, setMaxTokens] = useState(4000);
   const [location, setLocation] = useState("");
   const [address, setAddress] = useState("");
   const [coords, setCoords] = useState<[number, number] | null>(null);
@@ -185,7 +186,11 @@ export default function Home() {
     setResponseError("");
 
     try {
-      const result = await openrouterRequestJson({ query, model: model as ModelId });
+      const result = await openrouterRequestJson({
+        query,
+        model,
+        maxTokens,
+      });
       setResponse(result);
     } catch (err) {
       setResponseError(err instanceof Error ? err.message : "Request failed");
@@ -238,6 +243,16 @@ export default function Home() {
               variant="text"
             />
             <ModelOptionDropdown value={model} onChange={setModel} />
+            <label className="inline-flex items-center gap-1.5 text-sm text-[#a3a3a3]">
+              maxTokens:
+              <input
+                type="number"
+                min={1}
+                value={maxTokens}
+                onChange={(e) => setMaxTokens(Number(e.target.value) || 4000)}
+                className="w-20 rounded-md bg-[#3a3a3a] px-2 py-1 text-sm text-[#d4d4d4] outline-none"
+              />
+            </label>
           </div>
 
           <div className="flex items-center gap-1.5">

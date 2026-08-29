@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 export const MODEL_OPTIONS = [
   {
+    id: "openai/gpt-5.6-luna-pro",
+    label: "gpt-5.6-luna-pro",
+  },
+  {
     id: "deepseek/deepseek-v4-pro",
     label: "deepseek-v4-pro",
   },
@@ -27,7 +31,7 @@ export const MODEL_OPTIONS = [
 
 export type ModelId = (typeof MODEL_OPTIONS)[number]["id"];
 
-export const DEFAULT_MODEL: ModelId = "deepseek/deepseek-v4-pro";
+export const DEFAULT_MODEL: ModelId = "openai/gpt-5.6-luna-pro";
 
 type ModelOptionDropdownProps = {
   value: ModelId;

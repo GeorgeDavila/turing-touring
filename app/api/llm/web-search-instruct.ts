@@ -1,7 +1,8 @@
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
+//const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
 //const DEFAULT_MODEL = "deepseek/deepseek-v4-pro";
+const DEFAULT_MODEL = "openai/gpt-5.6-luna-pro";
 
 const QUERY_SUFFIX = `
 Only stop when you find an exact link meeting my requirements. 
@@ -90,7 +91,7 @@ export async function openrouterRequest({
     throw new Error("OPENROUTER_API_KEY is not set");
   }
 
-  const tools = [{type: "openrouter:datetime"}]
+  const tools = [] //[{type: "openrouter:datetime"}]
   if (useWebSearch) {
     tools.push({type: "openrouter:web_search"})
   }

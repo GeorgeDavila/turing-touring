@@ -1,3 +1,15 @@
+# Turing Touring
+
+AI tour guide for tourists and local events
+
+
+## Models 
+We use `openai/gpt-5.6-luna-pro` as a default after testing multiple models, although other option are included. We use this model due to its high tool calling success rate in openrouters API. Tool calling is required for websearch. 
+
+`qwen/qwen3-235b-a22b-2507` was used for initial testing. Can work well but much less consistent with worse results. Likely due to model power and an inability to effectively use tools. More powerful models with lower tool calling success rates like `deepseek/deepseek-v4-pro` and `deepseek/deepseek-v4-flash-0731` can be harder to make work than this older qwen variant. Tool calling is likely the biggest issue for these. 
+
+
+# create-next-app
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
