@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getAddressSimple, getCity } from "@/app/api/geo/actions";
 import { openrouterRequestJson } from "@/app/api/llm/actions";
-import ModelOptionDropdown, {
+import {
   DEFAULT_MODEL,
   type ModelId,
 } from "@/components/ModelOptionDropdown";
@@ -31,13 +31,51 @@ const TYPE_FALLBACK: Record<Category, string> = {
   Nightlife: "nightlife spots",
 };
 
+const TIME_PRESETS = ["any", "morning", "afternoon", "evening"] as const;
+type TimePreset = (typeof TIME_PRESETS)[number];
+
+const TIME_INTERVALS = [
+  "6:00 AM",
+  "7:00 AM",
+  "8:00 AM",
+  "9:00 AM",
+  "10:00 AM",
+  "11:00 AM",
+  "12:00 PM",
+  "1:00 PM",
+  "2:00 PM",
+  "3:00 PM",
+  "4:00 PM",
+  "5:00 PM",
+  "6:00 PM",
+  "7:00 PM",
+  "8:00 PM",
+  "9:00 PM",
+  "10:00 PM",
+  "11:00 PM",
+] as const;
+
+type TimeSelection = TimePreset | (typeof TIME_INTERVALS)[number];
+
+const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
+
+function formatDateKey(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function buildDefaultQuery(
   address: string,
   category: Category,
   subOption: string,
+  date: Date,
+  time: TimeSelection,
 ) {
   const type = subOption || TYPE_FALLBACK[category];
-  return `Give me a link to ${type} near ${address} or neighboring areas. Time: this weekend. Price: $0 - $50.`;
+  const timeLabel = time === "any" ? "any time" : time;
+  return `Give me a link to ${type} near ${address} or neighboring areas. Date: ${formatDateKey(date)}. Time: ${timeLabel}. Price: $0 - $50.`;
 }
 
 function normalizeGoogleMapsUrl(link: string | null) {
@@ -87,6 +125,50 @@ function buildDirectionsLink(
   return `https://www.google.com/maps/dir/${latitude},${longitude}/${destination}`;
 }
 
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function isSameDay(a: Date, b: Date) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function getCalendarDays(viewMonth: Date) {
+  const year = viewMonth.getFullYear();
+  const month = viewMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const days: Array<{ date: Date; inMonth: boolean }> = [];
+
+  for (let i = startOffset - 1; i >= 0; i -= 1) {
+    days.push({
+      date: new Date(year, month, -i),
+      inMonth: false,
+    });
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    days.push({
+      date: new Date(year, month, day),
+      inMonth: true,
+    });
+  }
+
+  while (days.length % 7 !== 0) {
+    const last = days[days.length - 1].date;
+    days.push({
+      date: new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1),
+      inMonth: false,
+    });
+  }
+
+  return days;
+}
 
 function toDestinationCoords(location: {
   latitude: number;
@@ -113,14 +195,16 @@ export default function Home() {
     price: number | null;
     description: string | null;
     google_maps_link: string | null;
-    location: { latitude: number, longitude: number } | null;
+    location: { latitude: number; longitude: number } | null;
   } | null>(null);
   const [responseError, setResponseError] = useState("");
-
-  function handleCategoryChange(next: Category) {
-    setCategory(next);
-    setSubOption("");
-  }
+  const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
+  const [viewMonth, setViewMonth] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  );
+  const [timeSelection, setTimeSelection] = useState<TimeSelection>("any");
+  const today = startOfDay(new Date());
+  const calendarDays = getCalendarDays(viewMonth);
 
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -164,9 +248,18 @@ export default function Home() {
 
   useEffect(() => {
     if (!address) return;
-    setValue(buildDefaultQuery(address, category, subOption));
-  }, [address, category, subOption]);
+    setValue(
+      buildDefaultQuery(
+        address,
+        category,
+        subOption,
+        selectedDate,
+        timeSelection,
+      ),
+    );
+  }, [address, category, subOption, selectedDate, timeSelection]);
 
+  // Kept for later reuse with the category buttons.
   async function handleSend() {
     const trimmed = value.trim();
     if (!trimmed || sending) return;
@@ -177,6 +270,8 @@ export default function Home() {
       subOption ? `Type: ${subOption}` : null,
       address ? `Address: ${address}` : null,
       location ? `City: ${location}` : null,
+      `Date: ${formatDateKey(selectedDate)}`,
+      `Time: ${timeSelection}`,
     ]
       .filter(Boolean)
       .join("\n");
@@ -199,13 +294,28 @@ export default function Home() {
     }
   }
 
+  function handleSubOptionClick(nextCategory: Category, nextSubOption: string) {
+    setCategory(nextCategory);
+    setSubOption(nextSubOption);
+  }
+
+  function shiftMonth(delta: number) {
+    setViewMonth(
+      (current) => new Date(current.getFullYear(), current.getMonth() + delta, 1),
+    );
+  }
+
+  // Avoid unused-variable warnings while query logic is retained for later.
+  void handleSend;
+  void setModel;
+  void setMaxTokens;
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 bg-[#1a1a1a] px-4 py-12">
+    <div className="flex flex-1 flex-col items-center gap-8 bg-[#1a1a1a] px-4 py-12">
       <h1 className="font-sans text-4xl font-semibold tracking-tight text-[#e5e5e5] sm:text-5xl">
         Turing Touring
       </h1>
 
-      {/* geolocation button to get the user's location */}
       <button
         className="rounded-md bg-[#3a3a3a] px-4 py-2 text-sm text-[#e5e5e5] transition-colors hover:bg-[#454545] disabled:opacity-60"
         type="button"
@@ -218,66 +328,144 @@ export default function Home() {
             ? `🌎 ${location} 🌍`
             : "🌎 Get Location 🌍"}
       </button>
-      <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 shadow-lg">
-        <textarea
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="What do you want to do?"
-          autoFocus
-          rows={3}
-          className="w-full resize-none bg-transparent text-[15px] leading-relaxed text-[#e5e5e5] placeholder:text-[#8a8a8a] outline-none"
-        />
 
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Dropdown
-              value={category}
-              options={CATEGORIES}
-              onChange={handleCategoryChange}
-              variant="pill"
-            />
-            <Dropdown
-              value={subOption}
-              options={SUB_OPTIONS[category]}
-              onChange={setSubOption}
-              variant="text"
-            />
-            <ModelOptionDropdown value={model} onChange={setModel} />
-            <label className="inline-flex items-center gap-1.5 text-sm text-[#a3a3a3]">
-              maxTokens:
-              <input
-                type="number"
-                min={1}
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(Number(e.target.value) || 4000)}
-                className="w-20 rounded-md bg-[#3a3a3a] px-2 py-1 text-sm text-[#d4d4d4] outline-none"
-              />
-            </label>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              aria-label="Attach file"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[#a3a3a3] transition-colors hover:bg-[#3a3a3a] hover:text-[#d4d4d4]"
-            >
-              <PaperclipIcon />
-            </button>
-            <button
-              type="button"
-              aria-label={sending ? "Sending" : "Send"}
-              disabled={sending || !value.trim()}
-              onClick={handleSend}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-[#3a3a3a] text-[#a3a3a3] transition-colors hover:bg-[#454545] hover:text-[#d4d4d4] disabled:opacity-60"
-            >
-              {sending ? <SpinnerIcon /> : <EnterIcon />}
-            </button>
-          </div>
+      <div className="flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-start">
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          {CATEGORIES.map((cat) => (
+            <section key={cat} className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium tracking-wide text-[#a3a3a3] uppercase">
+                {cat}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {SUB_OPTIONS[cat].map((option) => {
+                  const selected = category === cat && subOption === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => handleSubOptionClick(cat, option)}
+                      className={`rounded-full px-3 py-1.5 text-sm transition-colors ${
+                        selected
+                          ? "bg-[#e5e5e5] text-[#1a1a1a]"
+                          : "bg-[#3a3a3a] text-[#d4d4d4] hover:bg-[#454545]"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
+
+        <aside className="flex w-full shrink-0 flex-col gap-4 lg:w-80">
+          <div className="rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => shiftMonth(-1)}
+                className="rounded-md px-2 py-1 text-[#a3a3a3] transition-colors hover:bg-[#3a3a3a] hover:text-[#e5e5e5]"
+                aria-label="Previous month"
+              >
+                ‹
+              </button>
+              <h3 className="text-sm font-medium text-[#e5e5e5]">
+                {viewMonth.toLocaleString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </h3>
+              <button
+                type="button"
+                onClick={() => shiftMonth(1)}
+                className="rounded-md px-2 py-1 text-[#a3a3a3] transition-colors hover:bg-[#3a3a3a] hover:text-[#e5e5e5]"
+                aria-label="Next month"
+              >
+                ›
+              </button>
+            </div>
+
+            <div className="mb-1 grid grid-cols-7 gap-1">
+              {WEEKDAYS.map((day) => (
+                <div
+                  key={day}
+                  className="py-1 text-center text-xs text-[#8a8a8a]"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {calendarDays.map(({ date, inMonth }) => {
+                const selected = isSameDay(date, selectedDate);
+                const isToday = isSameDay(date, today);
+                return (
+                  <button
+                    key={date.toISOString()}
+                    type="button"
+                    onClick={() => setSelectedDate(startOfDay(date))}
+                    className={`aspect-square rounded-lg text-sm transition-colors ${
+                      selected
+                        ? "bg-[#e5e5e5] text-[#1a1a1a]"
+                        : inMonth
+                          ? "text-[#d4d4d4] hover:bg-[#3a3a3a]"
+                          : "text-[#5a5a5a] hover:bg-[#333333]"
+                    } ${isToday && !selected ? "ring-1 ring-[#6b6b6b]" : ""}`}
+                  >
+                    {date.getDate()}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
+            <h3 className="mb-3 text-sm font-medium text-[#e5e5e5]">Time</h3>
+
+            <div className="mb-4 flex flex-wrap gap-2">
+              {TIME_PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setTimeSelection(preset)}
+                  className={`rounded-full px-3 py-1.5 text-sm capitalize transition-colors ${
+                    timeSelection === preset
+                      ? "bg-[#e5e5e5] text-[#1a1a1a]"
+                      : "bg-[#3a3a3a] text-[#d4d4d4] hover:bg-[#454545]"
+                  }`}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+
+            <p className="mb-2 text-xs tracking-wide text-[#8a8a8a] uppercase">
+              Intervals
+            </p>
+            <div className="grid max-h-56 grid-cols-2 gap-2 overflow-y-auto pr-1">
+              {TIME_INTERVALS.map((interval) => (
+                <button
+                  key={interval}
+                  type="button"
+                  onClick={() => setTimeSelection(interval)}
+                  className={`rounded-md px-2 py-1.5 text-sm transition-colors ${
+                    timeSelection === interval
+                      ? "bg-[#e5e5e5] text-[#1a1a1a]"
+                      : "bg-[#3a3a3a] text-[#d4d4d4] hover:bg-[#454545]"
+                  }`}
+                >
+                  {interval}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
       </div>
 
       {(response || responseError) && (
-        <div className="w-full max-w-3xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 text-sm leading-relaxed text-[#e5e5e5]">
+        <div className="w-full max-w-6xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4 text-sm leading-relaxed text-[#e5e5e5]">
           {responseError ? (
             responseError
           ) : response ? (
@@ -323,7 +511,10 @@ export default function Home() {
                   "—"
                 )}
               </p>
-              <p>Location Coordinates: {response.location?.latitude}, {response.location?.longitude}</p>
+              <p>
+                Location Coordinates: {response.location?.latitude},{" "}
+                {response.location?.longitude}
+              </p>
               {response.google_maps_link && coords && (
                 <a
                   href={buildDirectionsLink(coords, response.google_maps_link)}
@@ -340,11 +531,11 @@ export default function Home() {
       )}
 
       {coords && (
-        <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-[#3f3f3f]">
+        <div className="w-full max-w-6xl overflow-hidden rounded-2xl border border-[#3f3f3f]">
           <MapComponent
             coords={coords}
             destinationCoords={
-              response?.location ? toDestinationCoords(response.location!) : null
+              response?.location ? toDestinationCoords(response.location) : null
             }
           />
         </div>
@@ -352,182 +543,3 @@ export default function Home() {
     </div>
   );
 }
-
-function Dropdown<T extends string>({
-  value,
-  options,
-  onChange,
-  variant,
-  placeholder = "",
-}: {
-  value: T | "";
-  options: readonly T[];
-  onChange: (value: T) => void;
-  variant: "pill" | "text";
-  placeholder?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => setOpen((prev) => !prev)}
-        className={
-          variant === "pill"
-            ? "inline-flex items-center gap-1.5 rounded-full bg-[#3a3a3a] px-3 py-1.5 text-sm text-[#d4d4d4] transition-colors hover:bg-[#454545]"
-            : "inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-sm text-[#a3a3a3] transition-colors hover:bg-[#3a3a3a] hover:text-[#d4d4d4]"
-        }
-      >
-        {variant === "pill" && (
-          <span className="text-base leading-none" aria-hidden>
-            ∞
-          </span>
-        )}
-        <span className={!value ? "text-[#8a8a8a]" : undefined}>
-          {value || placeholder}
-        </span>
-        <ChevronDown />
-      </button>
-
-      {open && (
-        <ul
-          role="listbox"
-          className="absolute bottom-full left-0 z-10 mb-2 min-w-full overflow-hidden rounded-xl border border-[#3f3f3f] bg-[#2b2b2b] py-1 shadow-lg"
-        >
-          {options.map((option) => (
-            <li key={option}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={option === value}
-                onClick={() => {
-                  onChange(option);
-                  setOpen(false);
-                }}
-                className={`w-full whitespace-nowrap px-3 py-2 text-left text-sm transition-colors hover:bg-[#3a3a3a] ${
-                  option === value ? "text-[#e5e5e5]" : "text-[#a3a3a3]"
-                }`}
-              >
-                {option}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function ChevronDown() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 12 12"
-      fill="none"
-      aria-hidden
-      className="opacity-70"
-    >
-      <path
-        d="M3 4.5L6 7.5L9 4.5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PaperclipIcon() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SpinnerIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-      className="animate-spin"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeOpacity="0.25"
-      />
-      <path
-        d="M12 3a9 9 0 019 9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function EnterIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M9 10l-5 5 5 5"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M20 4v7a4 4 0 01-4 4H4"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
