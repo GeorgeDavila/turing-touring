@@ -12,6 +12,10 @@ import CategoryOptions, {
   type Category,
 } from "@/components/CategoryOptions";
 import DateCalendar, { startOfDay } from "@/components/DateCalendar";
+import TimeSelectionPanel, {
+  DEFAULT_TIME_SELECTION,
+  type TimeSelection,
+} from "@/components/TimeSelectionPanel";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   ssr: false,
@@ -24,32 +28,6 @@ const TYPE_FALLBACK: Record<Category, string> = {
   Tourist: "tourist attractions",
   Nightlife: "nightlife spots",
 };
-
-const TIME_PRESETS = ["any", "morning", "afternoon", "evening"] as const;
-type TimePreset = (typeof TIME_PRESETS)[number];
-
-const TIME_INTERVALS = [
-  "6:00 AM",
-  "7:00 AM",
-  "8:00 AM",
-  "9:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "12:00 PM",
-  "1:00 PM",
-  "2:00 PM",
-  "3:00 PM",
-  "4:00 PM",
-  "5:00 PM",
-  "6:00 PM",
-  "7:00 PM",
-  "8:00 PM",
-  "9:00 PM",
-  "10:00 PM",
-  "11:00 PM",
-] as const;
-
-type TimeSelection = TimePreset | (typeof TIME_INTERVALS)[number];
 
 function formatDateKey(date: Date) {
   const y = date.getFullYear();
@@ -146,7 +124,9 @@ export default function Home() {
   } | null>(null);
   const [responseError, setResponseError] = useState("");
   const [selectedDate, setSelectedDate] = useState(() => startOfDay(new Date()));
-  const [timeSelection, setTimeSelection] = useState<TimeSelection>("any");
+  const [timeSelection, setTimeSelection] = useState<TimeSelection>(
+    DEFAULT_TIME_SELECTION,
+  );
 
   const handleGetLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -321,46 +301,10 @@ export default function Home() {
             onSelectDate={setSelectedDate}
           />
 
-          <div className="rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
-            <h3 className="mb-3 text-sm font-medium text-[#e5e5e5]">Time</h3>
-
-            <div className="mb-4 flex flex-wrap gap-2">
-              {TIME_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setTimeSelection(preset)}
-                  className={`rounded-full px-3 py-1.5 text-sm capitalize transition-colors ${
-                    timeSelection === preset
-                      ? "bg-[#e5e5e5] text-[#1a1a1a]"
-                      : "bg-[#3a3a3a] text-[#d4d4d4] hover:bg-[#454545]"
-                  }`}
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-
-            <p className="mb-2 text-xs tracking-wide text-[#8a8a8a] uppercase">
-              Intervals
-            </p>
-            <div className="grid max-h-56 grid-cols-2 gap-2 overflow-y-auto pr-1">
-              {TIME_INTERVALS.map((interval) => (
-                <button
-                  key={interval}
-                  type="button"
-                  onClick={() => setTimeSelection(interval)}
-                  className={`rounded-md px-2 py-1.5 text-sm transition-colors ${
-                    timeSelection === interval
-                      ? "bg-[#e5e5e5] text-[#1a1a1a]"
-                      : "bg-[#3a3a3a] text-[#d4d4d4] hover:bg-[#454545]"
-                  }`}
-                >
-                  {interval}
-                </button>
-              ))}
-            </div>
-          </div>
+          <TimeSelectionPanel
+            value={timeSelection}
+            onChange={setTimeSelection}
+          />
         </aside>
       </div>
 
