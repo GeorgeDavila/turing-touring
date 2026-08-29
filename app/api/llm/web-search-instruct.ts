@@ -3,14 +3,16 @@ const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "qwen/qwen3-235b-a22b-2507";
 //const DEFAULT_MODEL = "deepseek/deepseek-v4-pro";
 
-const SYSTEM_PROMPT = `Only stop when you find an exact link meeting my requirements. 
-Only return the precise link, date, time, price, description, google maps link, and location coordinates (latitude and longitude) in JSON format with the keys "link", "date", "time", "price", "description", "location", and "google_maps_link". 
+const QUERY_SUFFIX = `
+Only stop when you find an exact link meeting my requirements. 
+Only return the precise link, time, price, description, google maps link, and location coordinates (latitude and longitude) in JSON format with the keys "link", "time", "price", "description", "location", and "google_maps_link". 
 Do not include any other text in your response. 
-Put the date in the format "YYYY-MM-DD". Is the date the target date? If not, drop the result.
 Use the local time displayed on event pages as the time.
 Find the google maps link by searching for the address of the event in google maps.
 Extract the latitude and longitude from the google maps link.
-If you cannot find a link, return {"link": "", "date": "", "time": "", "price": 0, "description": "", "google_maps_link": "", "location": {"latitude": 0, "longitude": 0} } in JSON format.`;
+If you cannot find a link, return {"link": "", "time": "", "price": 0, "description": "", "google_maps_link": "", "location": {"latitude": 0, "longitude": 0} } in JSON format.`;
+
+const SYSTEM_PROMPT = `You are a helpful assistant that can answer questions and help with tasks. Help the user with their query. Navigate to the web search results to find the information you need.`;
 
 type MessageContent =
   | { type: "text"; text: string }
@@ -48,7 +50,7 @@ function buildContent({
   audioUrl,
   fileUrl,
 }: OpenRouterRequestOptions): MessageContent[] {
-  const content: MessageContent[] = [{ type: "text", text: query}];
+  const content: MessageContent[] = [{ type: "text", text: query + QUERY_SUFFIX }];
 
   if (imageUrl) {
     content.push({ type: "image_url", image_url: { url: imageUrl } });
