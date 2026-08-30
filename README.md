@@ -8,6 +8,12 @@ We use `openai/gpt-5.6-luna-pro` as a default after testing multiple models, alt
 
 `qwen/qwen3-235b-a22b-2507` was used for initial testing. Can work well but much less consistent with worse results. Likely due to model power and an inability to effectively use tools. More powerful models with lower tool calling success rates like `deepseek/deepseek-v4-pro` and `deepseek/deepseek-v4-flash-0731` can be harder to make work than this older qwen variant. Tool calling is likely the biggest issue for these. 
 
+## VLM
+
+
+## Walking-Tour
+
+Allow a streamed agent to describe the history of some local area, some interesting facts etc. 
 
 ## Talking-Tour
 
