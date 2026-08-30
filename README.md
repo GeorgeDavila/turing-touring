@@ -10,6 +10,9 @@ We use `openai/gpt-5.6-luna-pro` as a default after testing multiple models, alt
 
 ## VLM
 
+Take a snapshot of something or upload an image and an Agent will describe it. We'll pass the agent exact location data so it can properly contextualize the image. 
+
+Largely intended to act as a personal tour guide. Snap an image of a restaurant or store and get reviews. Snap an image of a building and get its history or architectural background, etc.
 
 ## Walking-Tour
 
