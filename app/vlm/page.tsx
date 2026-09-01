@@ -3,9 +3,12 @@
 import { useState } from "react";
 import CameraUploadInput from "@/components/CameraUploadInput";
 import ChatPanel from "@/components/ChatPanel";
+import LocationButton from "@/components/LocationButton";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 export default function VlmPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const { location, locating, refreshLocation } = useUserLocation();
 
   return (
     <div className="flex flex-1 flex-col items-center gap-8 bg-[#1a1a1a] px-4 py-12">
@@ -13,8 +16,14 @@ export default function VlmPage() {
         VLM
       </h1>
       <p className="max-w-md text-center text-[#a3a3a3]">
-        Capture or upload an image for vision language model analysis.
+        Capture or upload an image for vision language model analysis. It uses your location to provide context to the model.
       </p>
+
+      <LocationButton
+        location={location}
+        locating={locating}
+        onClick={refreshLocation}
+      />
 
       <div className="flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 flex-col">
