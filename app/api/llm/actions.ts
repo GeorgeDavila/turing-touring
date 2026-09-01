@@ -8,6 +8,8 @@ type OpenRouterRequestOptions = {
   useWebSearch?: boolean;
   maxTokens?: number;
   reasoning?: boolean;
+  appendQuerySuffix?: boolean;
+  systemPrompt?: string;
   imageUrl?: string | null;
   videoUrl?: string | null;
   audioUrl?: string | null;

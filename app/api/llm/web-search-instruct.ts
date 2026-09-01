@@ -30,6 +30,8 @@ type OpenRouterRequestOptions = {
   useWebSearch?: boolean;
   maxTokens?: number;
   reasoning?: boolean;
+  appendQuerySuffix?: boolean;
+  systemPrompt?: string;
   imageUrl?: string | null;
   videoUrl?: string | null;
   audioUrl?: string | null;
@@ -46,12 +48,14 @@ type OpenRouterChatResponse = {
 
 function buildContent({
   query,
+  appendQuerySuffix = true,
   imageUrl,
   videoUrl,
   audioUrl,
   fileUrl,
 }: OpenRouterRequestOptions): MessageContent[] {
-  const content: MessageContent[] = [{ type: "text", text: query + QUERY_SUFFIX }];
+  const text = appendQuerySuffix ? query + QUERY_SUFFIX : query;
+  const content: MessageContent[] = [{ type: "text", text }];
 
   if (imageUrl) {
     content.push({ type: "image_url", image_url: { url: imageUrl } });
@@ -75,6 +79,8 @@ export async function openrouterRequest({
   useWebSearch = true,
   maxTokens,
   reasoning = true,
+  appendQuerySuffix = true,
+  systemPrompt = SYSTEM_PROMPT,
   imageUrl = null,
   videoUrl = null,
   audioUrl = null,
@@ -109,6 +115,7 @@ export async function openrouterRequest({
           role: "user",
           content: buildContent({
             query,
+            appendQuerySuffix,
             imageUrl,
             videoUrl,
             audioUrl,
@@ -118,7 +125,7 @@ export async function openrouterRequest({
       ],
       tools,
       tool_choice: "auto",
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       max_tokens: maxTokens,
       reasoning: { enabled: reasoning },
     }),
