@@ -1,8 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
-import { getAddressSimple, getCity } from "@/app/api/geo/actions";
+import { useEffect, useState } from "react";
 import { openrouterRequestJson } from "@/app/api/llm/actions";
 import {
   DEFAULT_MODEL,
@@ -24,6 +23,8 @@ import PriceRangePanel, {
   DEFAULT_PRICE_MAX,
   DEFAULT_PRICE_MIN,
 } from "@/components/PriceRangePanel";
+import LocationButton from "@/components/LocationButton";
+import { useUserLocation } from "@/hooks/useUserLocation";
 
 const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   ssr: false,
@@ -121,10 +122,8 @@ export default function Home() {
   const [subOption, setSubOption] = useState("");
   const [model, setModel] = useState<ModelId>(DEFAULT_MODEL);
   const [maxTokens, setMaxTokens] = useState(4000);
-  const [location, setLocation] = useState("");
-  const [address, setAddress] = useState("");
-  const [coords, setCoords] = useState<[number, number] | null>(null);
-  const [locating, setLocating] = useState(false);
+  const { location, address, coords, locating, refreshLocation } =
+    useUserLocation();
   const [sending, setSending] = useState(false);
   const [response, setResponse] = useState<{
     link: string | null;
@@ -143,46 +142,6 @@ export default function Home() {
   );
   const [priceMin, setPriceMin] = useState(DEFAULT_PRICE_MIN);
   const [priceMax, setPriceMax] = useState(DEFAULT_PRICE_MAX);
-
-  const handleGetLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocation("Location unavailable");
-      setAddress("");
-      setCoords(null);
-      return;
-    }
-
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          setCoords([longitude, latitude]);
-          const [city, addressResult] = await Promise.all([
-            getCity(latitude, longitude),
-            getAddressSimple(latitude, longitude),
-          ]);
-          setLocation(city);
-          setAddress(addressResult);
-        } catch {
-          setLocation("Unknown place");
-          setAddress("");
-        } finally {
-          setLocating(false);
-        }
-      },
-      () => {
-        setLocation("Location denied");
-        setAddress("");
-        setCoords(null);
-        setLocating(false);
-      },
-    );
-  }, []);
-
-  useEffect(() => {
-    handleGetLocation();
-  }, [handleGetLocation]);
 
   useEffect(() => {
     if (!address) return;
@@ -275,18 +234,11 @@ export default function Home() {
         Turing Touring
       </h1>
 
-      <button
-        className="rounded-md bg-[#3a3a3a] px-4 py-2 text-sm text-[#e5e5e5] transition-colors hover:bg-[#454545] disabled:opacity-60"
-        type="button"
-        disabled={locating}
-        onClick={handleGetLocation}
-      >
-        {locating
-          ? "🌎 Locating… 🌍"
-          : location
-            ? `🌎 ${location} 🌍`
-            : "🌎 Get Location 🌍"}
-      </button>
+      <LocationButton
+        location={location}
+        locating={locating}
+        onClick={refreshLocation}
+      />
 
       <div className="flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
