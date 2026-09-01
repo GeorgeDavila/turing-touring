@@ -128,7 +128,7 @@ export default function CameraUploadInput({
   }
 
   return (
-    <div className="w-full max-w-2xl rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
+    <div className="w-full rounded-2xl border border-[#3f3f3f] bg-[#2b2b2b] p-4">
       <div className="mb-4 flex flex-wrap gap-2">
         {(["camera", "upload"] as const).map((option) => (
           <button
