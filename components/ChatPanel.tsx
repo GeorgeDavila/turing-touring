@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getAddressSimple, getCity } from "@/app/api/geo/actions";
 import { openrouterRequest } from "@/app/api/llm/actions";
 import ModelOptionDropdown, {
   DEFAULT_MODEL,
@@ -29,13 +30,69 @@ async function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function buildLocationSuffix(
+  city: string,
+  address: string,
+  coords: [number, number] | null,
+) {
+  const [longitude, latitude] = coords ?? [null, null];
+  return [
+    address ? `Address: ${address}` : null,
+    city ? `City: ${city}` : null,
+    latitude != null && longitude != null
+      ? `Coordinates: ${latitude}, ${longitude}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export default function ChatPanel({ imageFile = null }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [value, setValue] = useState("");
   const [model, setModel] = useState<ModelId>(DEFAULT_MODEL);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [location, setLocation] = useState("");
+  const [address, setAddress] = useState("");
+  const [coords, setCoords] = useState<[number, number] | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleGetLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocation("Location unavailable");
+      setAddress("");
+      setCoords(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          setCoords([longitude, latitude]);
+          const [city, addressResult] = await Promise.all([
+            getCity(latitude, longitude),
+            getAddressSimple(latitude, longitude),
+          ]);
+          setLocation(city);
+          setAddress(addressResult);
+        } catch {
+          setLocation("Unknown place");
+          setAddress("");
+        }
+      },
+      () => {
+        setLocation("Location denied");
+        setAddress("");
+        setCoords(null);
+      },
+    );
+  }, []);
+
+  useEffect(() => {
+    handleGetLocation();
+  }, [handleGetLocation]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -58,8 +115,10 @@ export default function ChatPanel({ imageFile = null }: ChatPanelProps) {
 
     try {
       const imageUrl = imageFile ? await fileToDataUrl(imageFile) : null;
+      const locationSuffix = buildLocationSuffix(location, address, coords);
+      const query = [trimmed, locationSuffix].filter(Boolean).join("\n");
       const response = await openrouterRequest({
-        query: trimmed,
+        query,
         model,
         useWebSearch: false,
         appendQuerySuffix: false,
