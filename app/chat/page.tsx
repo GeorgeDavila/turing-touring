@@ -18,7 +18,8 @@ const CATEGORIES = ["Events", "Classes", "Tourist", "Nightlife"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const SUB_OPTIONS: Record<Category, string[]> = {
-  Events: ["Music Events", "Concerts", "Festivals", "Sports Events", "Theater Events"],
+  Events: ["Music Events", "Concerts", "Festivals", "Sports Events", "Theater Events", "Family Events", "Black tie Events"],
+  Networking: ["Networking Events", "Business Events", "Tech Networking Events", "Professional Networking Events", "Industry Networking Events", "Trade Shows", "Career Fairs", "Business Conferences", "Business Workshops", "Business Seminars", "Business Training"],
   Classes: ["Cooking Classes", "Yoga Classes", "Language Classes", "Pottery Classes", "Art Classes"],
   Tourist: ["Museums", "Landmarks", "Walking Tours", "Viewpoints", "Shopping Centers", "Parks", "Beaches", "Hiking Trails", "Historical Sites", "Art Galleries"],
   Nightlife: ["Bars", "Clubs", "Live Music", "Late-Night Eats", "Dance Clubs", "Nightclubs", "Pubs", "Breweries", "Wine Bars", "Speakeasies"],
