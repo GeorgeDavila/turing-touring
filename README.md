@@ -20,7 +20,9 @@ Allow a streamed agent to describe the history of some local area, some interest
 
 ## Talking-Tour
 
-TTS tour guide. We'll just use the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API) for TTS as its free to run on most modern devices and pretty good, little need for full generative TTS model.  
+TTS tour guide. We'll just use the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API/Using_the_Web_Speech_API) for TTS as its free to run on most modern devices and pretty good, little need for full generative TTS model.
+
+[Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API) used for transcribing user speech and output TTS.
 
 
 
