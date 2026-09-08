@@ -6,6 +6,8 @@ export const CATEGORIES = [
   "Classes",
   "Tourist",
   "Nightlife",
+  "Food",
+  "Conventions",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
@@ -60,6 +62,28 @@ export const SUB_OPTIONS: Record<Category, string[]> = {
     "Breweries",
     "Wine Bars",
     "Speakeasies",
+  ],
+  Food: [
+    "Food Events",
+    "Food Festivals",
+    "Michelin Star Restaurants",
+    "Winery",
+    "Brewery",
+    "Fine Dining",
+    "Fast Food",
+    "Street Food",
+    "Food Trucks",
+    "Food Carts",
+    "Food Stands",
+    "Food Markets",
+  ],
+  Conventions: [
+    "Conventions",
+    "Comic Cons",
+    "Tech Conventions",
+    "Gaming Conventions",
+    "Anime Conventions",
+    "Trade Conventions",
   ],
 };
 
