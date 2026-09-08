@@ -37,6 +37,8 @@ const TYPE_FALLBACK: Record<Category, string> = {
   Classes: "classes",
   Tourist: "tourist attractions",
   Nightlife: "nightlife spots",
+  Food: "food events",
+  Conventions: "conventions",
 } as const;
 
 function formatDateKey(date: Date) {
