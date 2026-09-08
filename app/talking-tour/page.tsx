@@ -4,6 +4,7 @@ import { useState } from "react";
 import CameraUploadInput from "@/components/CameraUploadInput";
 import ChatPanel from "@/components/ChatPanel";
 import LocationButton from "@/components/LocationButton";
+import NeighborhoodHistoryGuide from "@/components/NeighborhoodHistoryGuide";
 import { useUserLocation } from "@/hooks/useUserLocation";
 
 const TALKING_TOUR_SYSTEM_PROMPT =
@@ -11,6 +12,8 @@ const TALKING_TOUR_SYSTEM_PROMPT =
 
 export default function TalkingTourPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [neighborhoodHistoryEnabled, setNeighborhoodHistoryEnabled] =
+    useState(false);
   const { location, address, coords, locating, refreshLocation } =
     useUserLocation();
 
@@ -33,11 +36,25 @@ export default function TalkingTourPage() {
         .
       </p>
 
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-[#d4d4d4]">
+        <input
+          type="checkbox"
+          checked={neighborhoodHistoryEnabled}
+          onChange={(event) =>
+            setNeighborhoodHistoryEnabled(event.target.checked)
+          }
+          className="h-4 w-4 accent-[#e5e5e5]"
+        />
+        Occasionally narrate neighborhood history as I move
+      </label>
+
       <LocationButton
         location={location}
         locating={locating}
         onClick={refreshLocation}
       />
+
+      <NeighborhoodHistoryGuide enabled={neighborhoodHistoryEnabled} />
 
       <div className="flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-start">
         <div className="flex min-w-0 flex-1 flex-col">
