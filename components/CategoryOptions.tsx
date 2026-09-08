@@ -23,6 +23,8 @@ export const SUB_OPTIONS: Record<Category, string[]> = {
     "Food Events",
     "Food Festivals",
     "Michelin Star Restaurants",
+    "Famous Restaurants",
+    "Historic Restaurants",
     "Winery",
     "Brewery",
     "Fine Dining",
