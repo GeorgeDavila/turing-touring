@@ -1,6 +1,12 @@
 "use client";
 
-export const CATEGORIES = ["Events", "Classes", "Tourist", "Nightlife"] as const;
+export const CATEGORIES = [
+  "Events",
+  "Networking",
+  "Classes",
+  "Tourist",
+  "Nightlife",
+] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export const SUB_OPTIONS: Record<Category, string[]> = {
@@ -10,6 +16,19 @@ export const SUB_OPTIONS: Record<Category, string[]> = {
     "Festivals",
     "Sports Events",
     "Theater Events",
+  ],
+  Networking: [
+    "Networking Events",
+    "Business Events",
+    "Tech Networking Events",
+    "Professional Networking Events",
+    "Industry Networking Events",
+    "Trade Shows",
+    "Career Fairs",
+    "Business Conferences",
+    "Business Workshops",
+    "Business Seminars",
+    "Business Training",
   ],
   Classes: [
     "Cooking Classes",
