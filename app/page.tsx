@@ -33,10 +33,11 @@ const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
 
 const TYPE_FALLBACK: Record<Category, string> = {
   Events: "events",
+  Networking: "networking events",
   Classes: "classes",
   Tourist: "tourist attractions",
   Nightlife: "nightlife spots",
-};
+} as const;
 
 function formatDateKey(date: Date) {
   const y = date.getFullYear();
