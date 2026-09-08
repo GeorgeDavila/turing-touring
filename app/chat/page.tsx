@@ -14,7 +14,13 @@ const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
   loading: () => <p>Loading Map...</p>,
 });
 
-const CATEGORIES = ["Events", "Classes", "Tourist", "Nightlife"] as const;
+const CATEGORIES = [
+  "Events",
+  "Networking",
+  "Classes",
+  "Tourist",
+  "Nightlife",
+] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const SUB_OPTIONS: Record<Category, string[]> = {
@@ -27,6 +33,7 @@ const SUB_OPTIONS: Record<Category, string[]> = {
 
 const TYPE_FALLBACK: Record<Category, string> = {
   Events: "events",
+  Networking: "networking events",
   Classes: "classes",
   Tourist: "tourist attractions",
   Nightlife: "nightlife spots",
