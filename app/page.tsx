@@ -33,11 +33,11 @@ const MapComponent = dynamic(() => import("@/components/map/MapComponent"), {
 
 const TYPE_FALLBACK: Record<Category, string> = {
   Events: "events",
-  Networking: "networking events",
-  Classes: "classes",
+  Food: "food events",
   Tourist: "tourist attractions",
   Nightlife: "nightlife spots",
-  Food: "food events",
+  Classes: "classes",
+  Networking: "networking events",
   Conventions: "conventions",
 } as const;
 
