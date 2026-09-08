@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getAddressSimple, getCity } from "@/app/api/geo/actions";
+import { getUserLocation } from "@/app/api/geo/actions";
 
 type UseUserLocationOptions = {
   fetchOnMount?: boolean;
 };
 
-export function useUserLocation({ fetchOnMount = true }: UseUserLocationOptions = {}) {
+export function useUserLocation({
+  fetchOnMount = true,
+}: UseUserLocationOptions = {}) {
   const [location, setLocation] = useState("");
   const [address, setAddress] = useState("");
   const [coords, setCoords] = useState<[number, number] | null>(null);
@@ -27,12 +29,9 @@ export function useUserLocation({ fetchOnMount = true }: UseUserLocationOptions 
         try {
           const { latitude, longitude } = position.coords;
           setCoords([longitude, latitude]);
-          const [city, addressResult] = await Promise.all([
-            getCity(latitude, longitude),
-            getAddressSimple(latitude, longitude),
-          ]);
-          setLocation(city);
-          setAddress(addressResult);
+          const result = await getUserLocation(latitude, longitude);
+          setLocation(result.city);
+          setAddress(result.address);
         } catch {
           setLocation("Unknown place");
           setAddress("");
